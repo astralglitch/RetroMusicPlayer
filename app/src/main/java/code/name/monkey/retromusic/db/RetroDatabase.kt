@@ -18,8 +18,8 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [PlaylistEntity::class, SongEntity::class, HistoryEntity::class, PlayCountEntity::class, MediaItemEntity::class, BookmarkEntity::class],
-    version = 25,
+    entities = [PlaylistEntity::class, SongEntity::class, HistoryEntity::class, PlayCountEntity::class, MediaItemEntity::class, BookmarkEntity::class, PodcastEntity::class, EpisodeEntity::class],
+    version = 26,
     exportSchema = false
 )
 abstract class RetroDatabase : RoomDatabase() {
@@ -28,4 +28,6 @@ abstract class RetroDatabase : RoomDatabase() {
     abstract fun historyDao(): HistoryDao
     abstract fun mediaItemDao(): MediaItemDao
     abstract fun bookmarkDao(): BookmarkDao
+    abstract fun podcastDao(): PodcastDao
+    abstract fun episodeDao(): EpisodeDao
 }

@@ -23,12 +23,17 @@ import code.name.monkey.retromusic.activities.ErrorActivity
 import code.name.monkey.retromusic.activities.MainActivity
 import code.name.monkey.retromusic.appshortcuts.DynamicShortcutManager
 import code.name.monkey.retromusic.helper.WallpaperAccentManager
+import code.name.monkey.retromusic.podcast.EpisodeDownloadManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidContext
+import org.koin.android.ext.android.inject
 import org.koin.core.context.startKoin
 
 class App : Application() {
 
     private val wallpaperAccentManager = WallpaperAccentManager(this)
+    private val episodeDownloadManager: EpisodeDownloadManager by inject()
 
     override fun onCreate() {
         super.onCreate()
@@ -38,6 +43,7 @@ class App : Application() {
             androidContext(this@App)
             modules(appModules)
         }
+        episodeDownloadManager.registerReceiver(CoroutineScope(SupervisorJob()))
         // default theme
         if (!ThemeStore.isConfigured(this, 3)) {
             ThemeStore.editTheme(this)

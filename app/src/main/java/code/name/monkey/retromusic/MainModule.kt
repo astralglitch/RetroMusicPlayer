@@ -5,6 +5,7 @@ import code.name.monkey.retromusic.auto.AutoMusicProvider
 import code.name.monkey.retromusic.cast.RetroWebServer
 import code.name.monkey.retromusic.db.MIGRATION_23_24
 import code.name.monkey.retromusic.db.MIGRATION_24_25
+import code.name.monkey.retromusic.db.MIGRATION_25_26
 import code.name.monkey.retromusic.db.RetroDatabase
 import code.name.monkey.retromusic.fragments.LibraryViewModel
 import code.name.monkey.retromusic.fragments.albums.AlbumDetailsViewModel
@@ -12,6 +13,7 @@ import code.name.monkey.retromusic.fragments.artists.ArtistDetailsViewModel
 import code.name.monkey.retromusic.fragments.genres.GenreDetailsViewModel
 import code.name.monkey.retromusic.fragments.playlists.PlaylistDetailsViewModel
 import code.name.monkey.retromusic.model.Genre
+import code.name.monkey.retromusic.podcast.podcastModule
 import code.name.monkey.retromusic.network.provideDefaultCache
 import code.name.monkey.retromusic.network.provideLastFmRest
 import code.name.monkey.retromusic.network.provideLastFmRetrofit
@@ -42,7 +44,7 @@ private val roomModule = module {
 
     single {
         Room.databaseBuilder(androidContext(), RetroDatabase::class.java, "playlist.db")
-            .addMigrations(MIGRATION_23_24, MIGRATION_24_25)
+            .addMigrations(MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26)
             .build()
     }
 
@@ -64,6 +66,14 @@ private val roomModule = module {
 
     factory {
         get<RetroDatabase>().bookmarkDao()
+    }
+
+    factory {
+        get<RetroDatabase>().podcastDao()
+    }
+
+    factory {
+        get<RetroDatabase>().episodeDao()
     }
 
     single {
@@ -191,4 +201,4 @@ private val viewModules = module {
     }
 }
 
-val appModules = listOf(mainModule, dataModule, autoModule, viewModules, networkModule, roomModule)
+val appModules = listOf(mainModule, dataModule, autoModule, viewModules, networkModule, roomModule, podcastModule)

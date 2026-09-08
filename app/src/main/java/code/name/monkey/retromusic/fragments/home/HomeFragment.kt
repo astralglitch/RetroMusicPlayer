@@ -292,6 +292,12 @@ class HomeFragment :
                 navOptions
             )
 
+            R.id.action_podcasts -> findNavController().navigate(
+                R.id.podcasts_fragment,
+                null,
+                navOptions
+            )
+
             R.id.action_import_playlist -> ImportPlaylistDialog().show(
                 childFragmentManager,
                 "ImportPlaylist"

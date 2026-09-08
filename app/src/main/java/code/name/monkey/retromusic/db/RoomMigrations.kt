@@ -30,3 +30,28 @@ val MIGRATION_24_25 = object : Migration(24, 25) {
         )
     }
 }
+
+val MIGRATION_25_26 = object : Migration(25, 26) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            "CREATE TABLE IF NOT EXISTS `PodcastEntity` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`feed_url` TEXT NOT NULL, `title` TEXT NOT NULL, " +
+                "`image_url` TEXT, `description` TEXT, `last_fetched` INTEGER NOT NULL)"
+        )
+        database.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_PodcastEntity_feed_url` ON `PodcastEntity` (`feed_url`)"
+        )
+        database.execSQL(
+            "CREATE TABLE IF NOT EXISTS `EpisodeEntity` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`podcast_id` INTEGER NOT NULL, `guid` TEXT NOT NULL, `title` TEXT NOT NULL, " +
+                "`enclosure_url` TEXT NOT NULL, `pub_date` INTEGER NOT NULL, " +
+                "`duration_ms` INTEGER NOT NULL, `description` TEXT, `local_file_path` TEXT, " +
+                "`download_state` TEXT NOT NULL, `download_id` INTEGER, `playback_position_ms` INTEGER NOT NULL)"
+        )
+        database.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_EpisodeEntity_podcast_id_guid` ON `EpisodeEntity` (`podcast_id`, `guid`)"
+        )
+    }
+}

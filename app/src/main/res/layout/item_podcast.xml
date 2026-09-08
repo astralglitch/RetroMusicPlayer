@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.textview.MaterialTextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/podcastTitle"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginEnd="12dp"
+    android:padding="8dp"
+    android:maxLines="1"
+    android:ellipsize="end"
+    android:textAppearance="?attr/textAppearanceTitleSmall"
+    tools:text="Podcast title"
+    xmlns:tools="http://schemas.android.com/tools" />
