@@ -14,8 +14,13 @@
  */
 package code.name.monkey.retromusic.podcast
 
+import android.graphics.Typeface
+import android.util.TypedValue
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.ViewGroup
+import android.widget.PopupMenu
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -23,6 +28,7 @@ import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.ItemEpisodeBinding
 import code.name.monkey.retromusic.db.EpisodeDownloadState
 import code.name.monkey.retromusic.db.EpisodeEntity
+import code.name.monkey.retromusic.extensions.accentColor
 import java.text.DateFormat
 import java.util.Date
 
@@ -35,10 +41,24 @@ class EpisodeAdapter(
     /** episode id -> 0-100, set by PodcastsFragment as PodcastsViewModel.downloadProgress ticks. */
     private var progressByEpisodeId: Map<Long, Int> = emptyMap()
 
+    /** The episode currently loaded in the player, if any -- drives the "now playing" highlight,
+     * mirroring how SongAdapter compares against MusicPlayerRemote.currentSong. */
+    private var currentEpisodeId: Long? = null
+
     fun updateProgress(progress: Map<Long, Int>) {
         progressByEpisodeId = progress
         progress.keys.forEach { episodeId ->
             val position = currentList.indexOfFirst { it.id == episodeId }
+            if (position >= 0) notifyItemChanged(position)
+        }
+    }
+
+    fun setCurrentEpisodeId(episodeId: Long?) {
+        if (currentEpisodeId == episodeId) return
+        val previousId = currentEpisodeId
+        currentEpisodeId = episodeId
+        listOf(previousId, episodeId).forEach { id ->
+            val position = currentList.indexOfFirst { it.id == id }
             if (position >= 0) notifyItemChanged(position)
         }
     }
@@ -54,6 +74,34 @@ class EpisodeAdapter(
 
     inner class ViewHolder(private val binding: ItemEpisodeBinding) :
         RecyclerView.ViewHolder(binding.root) {
+
+        init {
+            binding.root.setOnClickListener {
+                onPlay(getItem(layoutPosition))
+            }
+            binding.menu.setOnClickListener { showMenu(it) }
+        }
+
+        private fun showMenu(anchor: android.view.View) {
+            val episode = getItem(layoutPosition)
+            val popupMenu = PopupMenu(anchor.context, anchor)
+            popupMenu.inflate(R.menu.menu_item_episode)
+            val isDownloaded = episode.downloadState == EpisodeDownloadState.DOWNLOADED
+            val isDownloading = episode.downloadState == EpisodeDownloadState.DOWNLOADING
+            popupMenu.menu.findItem(R.id.action_episode_download).isVisible = !isDownloaded && !isDownloading
+            popupMenu.menu.findItem(R.id.action_episode_delete_download).isVisible = isDownloaded || isDownloading
+            popupMenu.setOnMenuItemClickListener { item: MenuItem ->
+                when (item.itemId) {
+                    R.id.action_play -> onPlay(episode)
+                    R.id.action_episode_download -> onDownload(episode)
+                    R.id.action_episode_delete_download -> onDeleteDownload(episode)
+                    else -> return@setOnMenuItemClickListener false
+                }
+                true
+            }
+            popupMenu.show()
+        }
+
         fun bind(episode: EpisodeEntity) {
             binding.episodeTitle.text = episode.title
             val date = if (episode.pubDate > 0) {
@@ -98,7 +146,23 @@ class EpisodeAdapter(
             binding.downloadButton.setOnClickListener {
                 if (isDownloaded || isDownloading) onDeleteDownload(episode) else onDownload(episode)
             }
-            binding.playButton.setOnClickListener { onPlay(episode) }
+
+            val context = binding.root.context
+            if (episode.id == currentEpisodeId) {
+                val accent = context.accentColor()
+                binding.episodeTitle.setTextColor(accent)
+                binding.episodeTitle.setTypeface(null, Typeface.BOLD)
+            } else {
+                val outValue = TypedValue()
+                context.theme.resolveAttribute(android.R.attr.textColorPrimary, outValue, true)
+                val normalColor = if (outValue.resourceId != 0) {
+                    ContextCompat.getColor(context, outValue.resourceId)
+                } else {
+                    outValue.data
+                }
+                binding.episodeTitle.setTextColor(normalColor)
+                binding.episodeTitle.setTypeface(null, Typeface.NORMAL)
+            }
         }
 
         private fun playedLabel(episode: EpisodeEntity): String? {

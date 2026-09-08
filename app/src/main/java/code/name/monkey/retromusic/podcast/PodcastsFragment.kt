@@ -14,16 +14,19 @@
  */
 package code.name.monkey.retromusic.podcast
 
+import android.app.AlertDialog
 import android.os.Bundle
 import android.view.View
+import android.widget.EditText
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.FragmentPodcastsBinding
 import code.name.monkey.retromusic.db.EpisodeEntity
 import code.name.monkey.retromusic.extensions.showToast
-import code.name.monkey.retromusic.fragments.base.AbsMusicServiceFragment
+import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
@@ -34,7 +37,7 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
  * Subscriptions/Queue/Downloads-as-separate-tabs design is still open, so everything here lives
  * in one screen for now.
  */
-class PodcastsFragment : AbsMusicServiceFragment(R.layout.fragment_podcasts) {
+class PodcastsFragment : AbsMainActivityFragment(R.layout.fragment_podcasts) {
 
     private var _binding: FragmentPodcastsBinding? = null
     private val binding get() = _binding!!
@@ -71,12 +74,13 @@ class PodcastsFragment : AbsMusicServiceFragment(R.layout.fragment_podcasts) {
             onDeleteDownload = { viewModel.deleteDownload(it) }
         )
         binding.episodesRecyclerView.adapter = episodeAdapter
+        episodeAdapter.setCurrentEpisodeId(MusicPlayerRemote.currentSong.episodeIdOrNull())
 
-        binding.subscribeButton.setOnClickListener {
-            val feedUrl = binding.feedUrlInput.text?.toString().orEmpty()
-            if (feedUrl.isNotBlank()) {
-                viewModel.subscribe(feedUrl)
-                binding.feedUrlInput.text?.clear()
+        binding.addPodcastFab.setOnClickListener { showAddPodcastDialog() }
+
+        libraryViewModel.getFabMargin().observe(viewLifecycleOwner) { margin ->
+            binding.addPodcastFab.updateLayoutParams<androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams> {
+                bottomMargin = margin
             }
         }
 
@@ -122,12 +126,37 @@ class PodcastsFragment : AbsMusicServiceFragment(R.layout.fragment_podcasts) {
     }
 
     override fun onPlayingMetaChanged() {
+        episodeAdapter.setCurrentEpisodeId(MusicPlayerRemote.currentSong.episodeIdOrNull())
         val targetEpisodeId = pendingResumeEpisodeId ?: return
         if (MusicPlayerRemote.currentSong.episodeIdOrNull() == targetEpisodeId) {
             MusicPlayerRemote.seekTo(pendingResumePositionMs)
             pendingResumeEpisodeId = null
         }
     }
+
+    private fun showAddPodcastDialog() {
+        val input = EditText(requireContext()).apply {
+            hint = getString(R.string.podcast_feed_url_hint)
+        }
+        val padding = (16 * resources.displayMetrics.density).toInt()
+        val container = android.widget.FrameLayout(requireContext()).apply {
+            setPadding(padding, padding / 2, padding, 0)
+            addView(input)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.podcast_subscribe)
+            .setView(container)
+            .setPositiveButton(R.string.podcast_subscribe) { _, _ ->
+                val feedUrl = input.text?.toString().orEmpty()
+                if (feedUrl.isNotBlank()) viewModel.subscribe(feedUrl)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    override fun onCreateMenu(menu: android.view.Menu, menuInflater: android.view.MenuInflater) {}
+
+    override fun onMenuItemSelected(menuItem: android.view.MenuItem) = false
 
     override fun onResume() {
         super.onResume()
