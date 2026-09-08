@@ -14,18 +14,23 @@
  */
 package code.name.monkey.retromusic.db
 
-import androidx.room.Database
-import androidx.room.RoomDatabase
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Query
+import androidx.room.Upsert
 
-@Database(
-    entities = [PlaylistEntity::class, SongEntity::class, HistoryEntity::class, PlayCountEntity::class, MediaItemEntity::class, BookmarkEntity::class],
-    version = 25,
-    exportSchema = false
-)
-abstract class RetroDatabase : RoomDatabase() {
-    abstract fun playlistDao(): PlaylistDao
-    abstract fun playCountDao(): PlayCountDao
-    abstract fun historyDao(): HistoryDao
-    abstract fun mediaItemDao(): MediaItemDao
-    abstract fun bookmarkDao(): BookmarkDao
+@Dao
+interface MediaItemDao {
+
+    @Upsert
+    fun upsertMediaItem(mediaItemEntity: MediaItemEntity)
+
+    @Delete
+    fun deleteMediaItem(mediaItemEntity: MediaItemEntity)
+
+    @Query("SELECT * FROM MediaItemEntity WHERE song_id = :songId LIMIT 1")
+    fun mediaItemForSong(songId: Long): MediaItemEntity?
+
+    @Query("SELECT * FROM MediaItemEntity WHERE type = :type")
+    fun mediaItemsOfType(type: MediaItemType): List<MediaItemEntity>
 }

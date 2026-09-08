@@ -14,18 +14,20 @@
  */
 package code.name.monkey.retromusic.db
 
-import androidx.room.Database
-import androidx.room.RoomDatabase
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.Query
 
-@Database(
-    entities = [PlaylistEntity::class, SongEntity::class, HistoryEntity::class, PlayCountEntity::class, MediaItemEntity::class, BookmarkEntity::class],
-    version = 25,
-    exportSchema = false
-)
-abstract class RetroDatabase : RoomDatabase() {
-    abstract fun playlistDao(): PlaylistDao
-    abstract fun playCountDao(): PlayCountDao
-    abstract fun historyDao(): HistoryDao
-    abstract fun mediaItemDao(): MediaItemDao
-    abstract fun bookmarkDao(): BookmarkDao
+@Dao
+interface BookmarkDao {
+
+    @Insert
+    fun insertBookmark(bookmarkEntity: BookmarkEntity): Long
+
+    @Delete
+    fun deleteBookmark(bookmarkEntity: BookmarkEntity)
+
+    @Query("SELECT * FROM BookmarkEntity WHERE episode_id = :episodeId ORDER BY timestamp_ms ASC")
+    fun bookmarksForEpisode(episodeId: Long): List<BookmarkEntity>
 }

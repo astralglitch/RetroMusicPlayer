@@ -33,8 +33,10 @@ import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.extensions.whichFragment
 import code.name.monkey.retromusic.fragments.MusicSeekSkipTouchListener
 import code.name.monkey.retromusic.fragments.other.VolumeFragment
+import code.name.monkey.retromusic.fragments.player.controls.PlayerControlsStrategy
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.helper.MusicProgressViewUpdateHelper
+import code.name.monkey.retromusic.db.MediaItemType
 import code.name.monkey.retromusic.service.MusicService
 import code.name.monkey.retromusic.util.MusicUtil
 import code.name.monkey.retromusic.util.PreferenceUtil
@@ -196,6 +198,7 @@ abstract class AbsPlayerControlsFragment(@LayoutRes layout: Int) : AbsMusicServi
         setUpPrevNext()
         setUpShuffleButton()
         setUpRepeatButton()
+        applyControlsStrategy()
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -249,6 +252,27 @@ abstract class AbsPlayerControlsFragment(@LayoutRes layout: Int) : AbsMusicServi
                     PorterDuff.Mode.SRC_IN
                 )
             }
+        }
+    }
+
+    /**
+     * The [MediaItemType] of the currently playing item. Defaults to [MediaItemType.MUSIC] until
+     * a real song -> type lookup (via `MediaItemDao`) is wired in, which keeps this a strict
+     * no-op for the plain-music path today.
+     */
+    open val currentMediaType: MediaItemType = MediaItemType.MUSIC
+
+    /**
+     * Container a concrete theme fragment can expose to host [PlayerControlsStrategy] extras.
+     * Left null by every theme today, so applying the strategy is a no-op until a theme opts in.
+     */
+    open val extraControlsContainerId: Int? = null
+
+    private fun applyControlsStrategy() {
+        val containerId = extraControlsContainerId ?: return
+        val extras = PlayerControlsStrategy.forType(currentMediaType).extrasFragment() ?: return
+        childFragmentManager.commit {
+            replace(containerId, extras)
         }
     }
 

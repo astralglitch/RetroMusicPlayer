@@ -14,18 +14,13 @@
  */
 package code.name.monkey.retromusic.db
 
-import androidx.room.Database
-import androidx.room.RoomDatabase
-
-@Database(
-    entities = [PlaylistEntity::class, SongEntity::class, HistoryEntity::class, PlayCountEntity::class, MediaItemEntity::class, BookmarkEntity::class],
-    version = 25,
-    exportSchema = false
-)
-abstract class RetroDatabase : RoomDatabase() {
-    abstract fun playlistDao(): PlaylistDao
-    abstract fun playCountDao(): PlayCountDao
-    abstract fun historyDao(): HistoryDao
-    abstract fun mediaItemDao(): MediaItemDao
-    abstract fun bookmarkDao(): BookmarkDao
+/**
+ * What kind of playback experience a [MediaItemEntity] should get. This is a property of the
+ * item itself (set from source defaults, overridable per-item by the user) — never a rigid
+ * category inferred from where the item came from.
+ */
+enum class MediaItemType {
+    MUSIC,
+    PODCAST_AUDIO,
+    PODCAST_VIDEO
 }
