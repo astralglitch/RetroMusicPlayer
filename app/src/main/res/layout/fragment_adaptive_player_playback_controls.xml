@@ -121,6 +121,15 @@
         tools:tint="@color/md_black_1000" />
 
     <FrameLayout
+        android:id="@+id/podcastControlsContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toTopOf="@id/volumeFragmentContainer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/playPauseButton" />
+
+    <FrameLayout
         android:id="@+id/volumeFragmentContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -129,7 +138,7 @@
         app:layout_constraintBottom_toTopOf="@id/songInfo"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/playPauseButton"
+        app:layout_constraintTop_toBottomOf="@+id/podcastControlsContainer"
         tools:backgroundTint="@color/md_red_400"
         tools:layout_height="52dp" />
 

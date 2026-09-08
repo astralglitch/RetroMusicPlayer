@@ -37,6 +37,7 @@ import code.name.monkey.retromusic.fragments.player.controls.PlayerControlsStrat
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.helper.MusicProgressViewUpdateHelper
 import code.name.monkey.retromusic.db.MediaItemType
+import code.name.monkey.retromusic.podcast.episodeIdOrNull
 import code.name.monkey.retromusic.service.MusicService
 import code.name.monkey.retromusic.util.MusicUtil
 import code.name.monkey.retromusic.util.PreferenceUtil
@@ -201,6 +202,10 @@ abstract class AbsPlayerControlsFragment(@LayoutRes layout: Int) : AbsMusicServi
         applyControlsStrategy()
     }
 
+    override fun onPlayingMetaChanged() {
+        applyControlsStrategy()
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     private fun setUpPrevNext() {
         nextButton?.setOnTouchListener(MusicSeekSkipTouchListener(requireActivity(), true))
@@ -256,23 +261,44 @@ abstract class AbsPlayerControlsFragment(@LayoutRes layout: Int) : AbsMusicServi
     }
 
     /**
-     * The [MediaItemType] of the currently playing item. Defaults to [MediaItemType.MUSIC] until
-     * a real song -> type lookup (via `MediaItemDao`) is wired in, which keeps this a strict
-     * no-op for the plain-music path today.
+     * The [MediaItemType] of the currently playing item. A podcast episode's [Song.id] is offset
+     * into a separate id space (see `EpisodeExtensions.episodeIdOrNull`), which is what
+     * distinguishes it from a plain scanned track here.
      */
-    open val currentMediaType: MediaItemType = MediaItemType.MUSIC
+    open val currentMediaType: MediaItemType
+        get() = if (MusicPlayerRemote.currentSong.episodeIdOrNull() != null) {
+            MediaItemType.PODCAST_AUDIO
+        } else {
+            MediaItemType.MUSIC
+        }
 
     /**
      * Container a concrete theme fragment can expose to host [PlayerControlsStrategy] extras.
-     * Left null by every theme today, so applying the strategy is a no-op until a theme opts in.
+     * Left null by a theme that hasn't opted in yet, so applying the strategy is a no-op there.
      */
     open val extraControlsContainerId: Int? = null
 
+    private var appliedMediaType: MediaItemType? = null
+
     private fun applyControlsStrategy() {
         val containerId = extraControlsContainerId ?: return
-        val extras = PlayerControlsStrategy.forType(currentMediaType).extrasFragment() ?: return
+        val mediaType = currentMediaType
+        if (mediaType == appliedMediaType) return
+        appliedMediaType = mediaType
+
+        // Shuffle/repeat describe a music queue, not a linear podcast episode -- hide rather than
+        // leave them showing controls that don't mean anything for what's currently playing.
+        val showsQueueModes = mediaType == MediaItemType.MUSIC
+        shuffleButton.isVisible = showsQueueModes
+        repeatButton.isVisible = showsQueueModes
+
+        val extras = PlayerControlsStrategy.forType(mediaType).extrasFragment()
         childFragmentManager.commit {
-            replace(containerId, extras)
+            if (extras != null) {
+                replace(containerId, extras)
+            } else {
+                childFragmentManager.findFragmentById(containerId)?.let { remove(it) }
+            }
         }
     }
 

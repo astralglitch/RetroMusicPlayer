@@ -58,6 +58,9 @@ class AdaptivePlaybackControlsFragment :
     override val songCurrentProgress: TextView
         get() = binding.songCurrentProgress
 
+    override val extraControlsContainerId: Int
+        get() = R.id.podcastControlsContainer
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentAdaptivePlayerPlaybackControlsBinding.bind(view)

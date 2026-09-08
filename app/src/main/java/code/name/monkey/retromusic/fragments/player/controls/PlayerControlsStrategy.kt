@@ -16,6 +16,7 @@ package code.name.monkey.retromusic.fragments.player.controls
 
 import androidx.fragment.app.Fragment
 import code.name.monkey.retromusic.db.MediaItemType
+import code.name.monkey.retromusic.podcast.PodcastExtraControlsFragment
 
 /**
  * Extra, type-specific controls shown alongside the base transport controls
@@ -45,10 +46,9 @@ object MusicControlsStrategy : PlayerControlsStrategy {
 }
 
 /**
- * Placeholder for podcast-specific controls (skip ±30s/10s, playback speed, chapter nav,
- * bookmark button, notes field — see project spec). Not yet implemented; wired up so the seam
- * exists once a real [Fragment] is built.
+ * Skip ±10/30s, playback speed, and tap-through to the podcast. Chapter navigation, bookmarks,
+ * and a notes field are still just design notes (see docs/PODCAST_DESIGN.md) — not built here yet.
  */
 object PodcastAudioControlsStrategy : PlayerControlsStrategy {
-    override fun extrasFragment(): Fragment? = null
+    override fun extrasFragment(): Fragment = PodcastExtraControlsFragment()
 }

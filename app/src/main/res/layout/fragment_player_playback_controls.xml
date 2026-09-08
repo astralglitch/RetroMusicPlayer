@@ -101,11 +101,18 @@
         android:paddingBottom="8dp"
         android:textColor="?android:attr/textColorSecondary"
         android:textSize="12sp"
-        app:layout_constraintBottom_toTopOf="@+id/playPauseButton"
+        app:layout_constraintBottom_toTopOf="@+id/podcastControlsContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/text"
         tools:text="@tools:sample/full_names" />
+
+    <FrameLayout
+        android:id="@+id/podcastControlsContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toTopOf="@+id/playPauseButton"
+        app:layout_constraintTop_toBottomOf="@+id/songInfo" />
 
     <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/repeatButton"
@@ -147,7 +154,7 @@
         app:layout_constraintEnd_toStartOf="@+id/nextButton"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/previousButton"
-        app:layout_constraintTop_toBottomOf="@+id/songInfo"
+        app:layout_constraintTop_toBottomOf="@+id/podcastControlsContainer"
         app:srcCompat="@drawable/ic_pause"
         tools:tint="@color/md_black_1000" />
 
