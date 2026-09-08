@@ -41,15 +41,60 @@ Proposed model:
 - **Status:** designed, not built. Needs subscriptions/episodes to exist first — see
   "Build order" below.
 
+## Now Playing screen should be type-aware
+
+Right now every playing item — music or podcast episode — shows the same Now Playing
+screen: album art, artist, shuffle/repeat transport controls. For a podcast episode
+this is actively confusing: nothing on screen says which podcast it's from, there's no
+skip ±10/30s, no speed control, and tapping through goes nowhere useful (compare
+AntennaPod's player: podcast name + episode title, tap-through to the show, speed/skip
+controls sized for spoken-word listening).
+
+The `PlayerControlsStrategy` seam (`fragments/player/controls/PlayerControlsStrategy.kt`)
+already exists for exactly this — `PodcastAudioControlsStrategy` is currently a stub
+that contributes nothing. Building this out means: podcast-appropriate transport
+controls (skip ±10/30s, playback speed, tap-through to the podcast), matching
+RetroMusic's existing per-theme visual style rather than a bolted-on separate look.
+Those skip/speed increments should themselves eventually be user-configurable, same as
+everything else here.
+- **Status:** designed (seam exists), controls not built. Bigger job than anything in
+  "Build order" below since it touches the shared Now Playing UI instead of living
+  in the isolated podcast module — treat as its own milestone once the basic loop
+  (below) is solid.
+
+## Per-tab swipe actions
+
+AntennaPod lets you configure a left-swipe and right-swipe action per screen (e.g.
+mark played, add to queue, archive) with sensible per-tab defaults and later
+customization. Same idea applies here once there's a real episode-list UI to swipe on
+(subscriptions, queue, downloads tabs). Ship reasonable defaults first (e.g. swipe to
+mark played/unplayed, swipe to remove from queue), make them configurable later —
+same shape as the bottom-nav customization story above.
+- **Status:** noted, not designed in detail yet. Depends on the nav-and-tabs decision
+  above being settled first, since "per tab" isn't meaningful until tabs exist.
+
 ## Build order (current focus)
 
 Per-item `MediaItemType` schema and the player-controls strategy seam are in place
 (see `db/MediaItemEntity.kt`, `fragments/player/controls/PlayerControlsStrategy.kt`).
 Nav and multi-queue are deliberately deferred. Immediate focus is the basics:
 
-1. Subscribe to a podcast feed (RSS, given a URL).
-2. See its episode list.
-3. Stream an episode (play straight from its enclosure URL).
-4. Download an episode for offline playback.
+1. Subscribe to a podcast feed (RSS, given a URL). ✅
+2. See its episode list. ✅
+3. Stream an episode (play straight from its enclosure URL). ✅
+4. Download an episode for offline playback, and manage it once downloaded (delete,
+   cancel a stuck transfer, see real progress). ✅
+5. Persist and resume playback position per episode. ✅
 
-Everything above this list stays a design note until that basic loop works end to end.
+Basic loop is done. Next real milestones, roughly in order: type-aware Now Playing
+screen (above), then nav/tabs, then multi-queue, then per-tab swipe actions.
+
+### Known limitation: episode artwork
+
+Episodes currently show no cover art (`EpisodeEntity.toSong()` sets `albumId = -1`,
+and the local-file-based Glide fallback is intentionally skipped for network URLs —
+see `AudioFileCoverFetcher.kt` — since it was making a wasted extra network fetch
+competing with the actual episode download for bandwidth). The real fix is wiring
+`PodcastEntity.imageUrl` (already fetched from the feed) into whatever Glide model
+paints the Now Playing / mini-player art, which naturally belongs in the type-aware
+Now Playing work above rather than as a standalone patch.

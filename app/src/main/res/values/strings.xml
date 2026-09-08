@@ -4,6 +4,7 @@
     <string name="podcast_subscribe">Subscribe</string>
     <string name="podcast_download">Download episode</string>
     <string name="podcast_delete_download">Delete downloaded episode</string>
+    <string name="podcast_cancel_download">Cancel download</string>
     <string name="podcast_play">Play episode</string>
     <string name="about_album_label">About %s</string>
     <string name="about_settings_summary">Team, social links</string>

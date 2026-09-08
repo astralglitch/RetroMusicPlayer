@@ -25,6 +25,15 @@ import java.io.InputStream
 class AudioFileCoverFetcher(private val model: AudioFileCover) : DataFetcher<InputStream> {
     private var stream: InputStream? = null
     override fun loadData(priority: Priority, callback: DataFetcher.DataCallback<in InputStream>) {
+        // This fetcher's fallback (AudioFileCoverUtils.fallback) does local-filesystem-only work
+        // (jaudiotagger tag reads, sibling cover.jpg lookups) that's meaningless -- and, worse,
+        // an extra network fetch worth competing for bandwidth -- against a streamed podcast
+        // episode's http(s) URL. Podcast art should come from the feed's own artwork instead;
+        // fail fast here rather than let Glide chase a local-file code path over the network.
+        if (model.filePath.startsWith("http://") || model.filePath.startsWith("https://")) {
+            callback.onLoadFailed(FileNotFoundException("Not a local file: ${model.filePath}"))
+            return
+        }
         val retriever = MediaMetadataRetriever()
         try {
             retriever.setDataSource(model.filePath)

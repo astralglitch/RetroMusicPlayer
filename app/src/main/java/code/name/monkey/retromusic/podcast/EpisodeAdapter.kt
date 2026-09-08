@@ -77,14 +77,26 @@ class EpisodeAdapter(
 
             val isDownloading = episode.downloadState == EpisodeDownloadState.DOWNLOADING
             val isDownloaded = episode.downloadState == EpisodeDownloadState.DOWNLOADED
-            binding.downloadButton.isEnabled = !isDownloading
-            binding.downloadButton.alpha = if (isDownloading) 0.4f else 1f
-            binding.downloadButton.setImageResource(if (isDownloaded) R.drawable.ic_delete else R.drawable.ic_download)
+            // A stuck-looking transfer (dead/starved connection) needs a way out -- the button
+            // stays enabled during DOWNLOADING too, as a cancel action, rather than being inert.
+            binding.downloadButton.isEnabled = true
+            binding.downloadButton.alpha = 1f
+            binding.downloadButton.setImageResource(
+                when {
+                    isDownloaded -> R.drawable.ic_delete
+                    isDownloading -> R.drawable.ic_close
+                    else -> R.drawable.ic_download
+                }
+            )
             binding.downloadButton.contentDescription = binding.root.context.getString(
-                if (isDownloaded) R.string.podcast_delete_download else R.string.podcast_download
+                when {
+                    isDownloaded -> R.string.podcast_delete_download
+                    isDownloading -> R.string.podcast_cancel_download
+                    else -> R.string.podcast_download
+                }
             )
             binding.downloadButton.setOnClickListener {
-                if (isDownloaded) onDeleteDownload(episode) else onDownload(episode)
+                if (isDownloaded || isDownloading) onDeleteDownload(episode) else onDownload(episode)
             }
             binding.playButton.setOnClickListener { onPlay(episode) }
         }

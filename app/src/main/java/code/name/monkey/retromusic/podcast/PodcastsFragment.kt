@@ -83,7 +83,14 @@ class PodcastsFragment : AbsMusicServiceFragment(R.layout.fragment_podcasts) {
             }
         }
 
-        viewModel.episodes.observe(viewLifecycleOwner) { episodeAdapter.submitList(it) }
+        viewModel.episodes.observe(viewLifecycleOwner) {
+            episodeAdapter.submitList(it)
+            // Also (not only) trigger here, not just from onResume(): on a freshly created
+            // fragment, onResume() runs before this list has loaded from the DB, so an
+            // onResume()-only trigger silently reconciles against an empty list and never
+            // gets another chance until the *next* resume.
+            viewModel.reconcileDownloads()
+        }
         viewModel.downloadProgress.observe(viewLifecycleOwner) { episodeAdapter.updateProgress(it) }
 
         viewModel.subscribeError.observe(viewLifecycleOwner) { error ->
