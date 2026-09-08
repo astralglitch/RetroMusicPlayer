@@ -40,5 +40,10 @@
         android:label=""
         tools:layout="@layout/fragment_home" />
 
+    <fragment
+        android:id="@+id/podcasts_fragment"
+        android:name="code.name.monkey.retromusic.podcast.PodcastsFragment"
+        android:label="@string/podcasts"
+        tools:layout="@layout/fragment_podcasts" />
 
 </navigation>

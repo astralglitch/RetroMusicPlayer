@@ -86,11 +86,6 @@
         <menu></menu>
     </item>
     <item
-        android:orderInCategory="9"
-        android:id="@+id/action_podcasts"
-        android:title="Podcasts"
-        app:showAsAction="never" />
-    <item
         android:orderInCategory="10"
         android:id="@+id/action_settings"
         android:icon="@drawable/ic_settings"

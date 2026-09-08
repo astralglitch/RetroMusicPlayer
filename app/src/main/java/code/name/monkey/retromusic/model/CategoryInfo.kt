@@ -37,6 +37,7 @@ data class CategoryInfo(
         Playlists(R.id.action_playlist, R.string.playlists, R.drawable.asld_playlist),
         Genres(R.id.action_genre, R.string.genres, R.drawable.asld_guitar),
         Folder(R.id.action_folder, R.string.folders, R.drawable.asld_folder),
-        Search(R.id.action_search, R.string.action_search, R.drawable.ic_search);
+        Search(R.id.action_search, R.string.action_search, R.drawable.ic_search),
+        Podcasts(R.id.podcasts_fragment, R.string.podcasts, R.drawable.ic_mic);
     }
 }

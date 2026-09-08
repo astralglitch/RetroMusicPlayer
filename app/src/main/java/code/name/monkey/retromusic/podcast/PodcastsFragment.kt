@@ -16,9 +16,6 @@ package code.name.monkey.retromusic.podcast
 
 import android.os.Bundle
 import android.view.View
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updatePadding
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.FragmentPodcastsBinding
 import code.name.monkey.retromusic.db.EpisodeEntity
@@ -29,9 +26,10 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 
 /**
  * Bare-bones subscribe / list episodes / play / download screen — the "get the basics working"
- * milestone from the podcast build-order notes (see docs/PODCAST_DESIGN.md). Not wired into the
- * app's navigation graph or bottom nav yet; nav/multi-queue design is still open, so this is
- * reachable only for manual testing until that's settled.
+ * milestone from the podcast build-order notes (see docs/PODCAST_DESIGN.md). Reachable as a
+ * bottom-nav category (CategoryInfo.Category.Podcasts) alongside Songs/Albums/etc.; the
+ * Subscriptions/Queue/Downloads-as-separate-tabs design is still open, so everything here lives
+ * in one screen for now.
  */
 class PodcastsFragment : AbsMusicServiceFragment(R.layout.fragment_podcasts) {
 
@@ -50,13 +48,6 @@ class PodcastsFragment : AbsMusicServiceFragment(R.layout.fragment_podcasts) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentPodcastsBinding.bind(view)
-
-        val initialTopPadding = binding.root.paddingTop
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, windowInsets ->
-            val statusBarInset = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars()).top
-            v.updatePadding(top = initialTopPadding + statusBarInset)
-            windowInsets
-        }
 
         podcastAdapter = PodcastAdapter { viewModel.select(it) }
         binding.podcastsRecyclerView.adapter = podcastAdapter

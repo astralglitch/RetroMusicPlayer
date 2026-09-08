@@ -14,8 +14,11 @@
  */
 package code.name.monkey.retromusic.podcast
 
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.View
+import androidx.preference.PreferenceManager
+import code.name.monkey.retromusic.PLAYBACK_SPEED
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.FragmentPodcastExtraControlsBinding
 import code.name.monkey.retromusic.fragments.base.AbsMusicServiceFragment
@@ -37,6 +40,15 @@ class PodcastExtraControlsFragment : AbsMusicServiceFragment(R.layout.fragment_p
     private var _binding: FragmentPodcastExtraControlsBinding? = null
     private val binding get() = _binding!!
 
+    // PlaybackSpeedDialog (the speed/pitch dialog under the Now Playing overflow menu) writes to
+    // the same PreferenceUtil.playbackSpeed this fragment's button does, but only this fragment's
+    // own click updated its label -- a change from that other dialog just went unnoticed here.
+    // Listening for the underlying preference key directly covers both directions.
+    private val speedPreferenceListener =
+        SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == PLAYBACK_SPEED) updateSpeedLabel()
+        }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentPodcastExtraControlsBinding.bind(view)
@@ -46,6 +58,19 @@ class PodcastExtraControlsFragment : AbsMusicServiceFragment(R.layout.fragment_p
         binding.speedButton.setOnClickListener { cycleSpeed() }
 
         updateSpeedLabel()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        PreferenceManager.getDefaultSharedPreferences(requireContext())
+            .registerOnSharedPreferenceChangeListener(speedPreferenceListener)
+        updateSpeedLabel()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        PreferenceManager.getDefaultSharedPreferences(requireContext())
+            .unregisterOnSharedPreferenceChangeListener(speedPreferenceListener)
     }
 
     private fun skip(deltaMs: Int) {

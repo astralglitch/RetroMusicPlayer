@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <resources>
+    <string name="podcasts">Podcasts</string>
     <string name="podcast_feed_url_hint">Podcast RSS feed URL</string>
     <string name="podcast_subscribe">Subscribe</string>
     <string name="podcast_download">Download episode</string>
