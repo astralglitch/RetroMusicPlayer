@@ -83,7 +83,17 @@
         android:id="@+id/podcasts_fragment"
         android:name="code.name.monkey.retromusic.podcast.PodcastsFragment"
         android:label="@string/podcasts"
-        tools:layout="@layout/fragment_podcasts" />
+        tools:layout="@layout/fragment_main_recycler" />
+
+    <fragment
+        android:id="@+id/podcastDetailsFragment"
+        android:name="code.name.monkey.retromusic.podcast.PodcastDetailsFragment"
+        android:label="PodcastDetailsFragment"
+        tools:layout="@layout/fragment_podcast_details">
+        <argument
+            android:name="extra_podcast_id"
+            app:argType="long" />
+    </fragment>
 
     <fragment
         android:id="@+id/action_album"

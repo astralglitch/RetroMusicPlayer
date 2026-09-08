@@ -9,6 +9,15 @@
     <string name="podcast_skip_back">Skip back 10 seconds</string>
     <string name="podcast_skip_forward">Skip forward 30 seconds</string>
     <string name="podcast_play">Play episode</string>
+    <string name="podcast_episodes">Episodes</string>
+    <string name="podcast_resume">Resume</string>
+    <string name="podcast_filter_downloaded">Downloaded only</string>
+    <string name="podcast_sort_newest">Newest first</string>
+    <string name="podcast_sort_oldest">Oldest first</string>
+    <string name="podcast_refresh">Refresh episodes</string>
+    <string name="podcast_refreshing">Refreshing…</string>
+    <string name="podcast_unsubscribe">Unsubscribe</string>
+    <string name="podcast_unsubscribe_confirm">Unsubscribe from %1$s? Downloaded episodes will be deleted.</string>
     <string name="about_album_label">About %s</string>
     <string name="about_settings_summary">Team, social links</string>
     <string name="accent_color">Accent color</string>

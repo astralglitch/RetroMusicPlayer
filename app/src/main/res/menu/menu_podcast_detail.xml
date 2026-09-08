@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_podcast_filter_downloaded"
+        android:icon="@drawable/ic_filter_list"
+        android:title="@string/podcast_filter_downloaded"
+        android:checkable="true"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_sort_order"
+        android:icon="@drawable/ic_sort"
+        android:title="@string/action_sort_order"
+        app:showAsAction="ifRoom">
+        <menu>
+            <group android:checkableBehavior="single">
+                <item
+                    android:id="@+id/action_podcast_sort_newest"
+                    android:title="@string/podcast_sort_newest" />
+                <item
+                    android:id="@+id/action_podcast_sort_oldest"
+                    android:title="@string/podcast_sort_oldest" />
+            </group>
+        </menu>
+    </item>
+
+    <item
+        android:id="@+id/action_podcast_refresh"
+        android:icon="@drawable/ic_refresh"
+        android:title="@string/podcast_refresh"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_podcast_unsubscribe"
+        android:icon="@drawable/ic_delete"
+        android:title="@string/podcast_unsubscribe"
+        app:showAsAction="never" />
+
+</menu>

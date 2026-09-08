@@ -14,41 +14,82 @@
  */
 package code.name.monkey.retromusic.podcast
 
+import android.annotation.SuppressLint
+import android.content.res.Resources
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
-import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
+import androidx.core.view.isVisible
+import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.RecyclerView
-import code.name.monkey.retromusic.databinding.ItemPodcastBinding
+import code.name.monkey.retromusic.R
+import code.name.monkey.retromusic.adapter.base.MediaEntryViewHolder
 import code.name.monkey.retromusic.db.PodcastEntity
+import code.name.monkey.retromusic.interfaces.IPodcastClickListener
+import com.bumptech.glide.Glide
+import com.bumptech.glide.request.RequestOptions
 
-class PodcastAdapter(private val onClick: (PodcastEntity) -> Unit) :
-    ListAdapter<PodcastEntity, PodcastAdapter.ViewHolder>(DIFF) {
+/**
+ * A generic grid/list adapter for subscribed podcasts, mirroring ArtistAdapter/AlbumAdapter --
+ * itemLayoutRes is swapped between the shared item_list/item_grid/item_card/etc layouts (see
+ * AbsRecyclerViewCustomGridSizeFragment) so podcasts get the same grid-size and grid-style
+ * controls as every other tab, rather than the old fixed horizontal strip.
+ */
+class PodcastAdapter(
+    private val activity: FragmentActivity,
+    var dataSet: List<PodcastEntity>,
+    var itemLayoutRes: Int,
+    private val listener: IPodcastClickListener
+) : RecyclerView.Adapter<PodcastAdapter.ViewHolder>() {
+
+    init {
+        setHasStableIds(true)
+    }
+
+    override fun getItemId(position: Int): Long = dataSet[position].id
+
+    @SuppressLint("NotifyDataSetChanged")
+    fun swapDataSet(dataSet: List<PodcastEntity>) {
+        this.dataSet = dataSet
+        notifyDataSetChanged()
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val binding = ItemPodcastBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return ViewHolder(binding)
+        val view = try {
+            LayoutInflater.from(activity).inflate(itemLayoutRes, parent, false)
+        } catch (e: Resources.NotFoundException) {
+            LayoutInflater.from(activity).inflate(R.layout.item_grid, parent, false)
+        }
+        return ViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(getItem(position))
-    }
-
-    inner class ViewHolder(private val binding: ItemPodcastBinding) :
-        RecyclerView.ViewHolder(binding.root) {
-        fun bind(podcast: PodcastEntity) {
-            binding.podcastTitle.text = podcast.title
-            binding.root.setOnClickListener { onClick(podcast) }
+        val podcast = dataSet[position]
+        holder.title?.text = podcast.title
+        holder.text?.isVisible = false
+        holder.menu?.isVisible = false
+        val transitionName = podcast.id.toString()
+        if (holder.imageContainer != null) {
+            holder.imageContainer?.transitionName = transitionName
+        } else {
+            holder.image?.transitionName = transitionName
+        }
+        if (holder.image != null) {
+            Glide.with(activity)
+                .load(podcast.imageUrl)
+                .apply(RequestOptions().placeholder(R.drawable.default_audio_art).error(R.drawable.default_audio_art))
+                .into(holder.image!!)
         }
     }
 
-    companion object {
-        private val DIFF = object : DiffUtil.ItemCallback<PodcastEntity>() {
-            override fun areItemsTheSame(oldItem: PodcastEntity, newItem: PodcastEntity) =
-                oldItem.id == newItem.id
+    override fun getItemCount(): Int = dataSet.size
 
-            override fun areContentsTheSame(oldItem: PodcastEntity, newItem: PodcastEntity) =
-                oldItem == newItem
+    inner class ViewHolder(itemView: View) : MediaEntryViewHolder(itemView) {
+        override fun onClick(v: View?) {
+            val podcast = dataSet[layoutPosition]
+            listener.onPodcast(podcast.id, imageContainer ?: image ?: itemView)
         }
+
+        override fun onLongClick(v: View?): Boolean = false
     }
 }

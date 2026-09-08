@@ -19,6 +19,8 @@ import androidx.room.Query
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
+
+
 @Dao
 interface EpisodeDao {
 
@@ -42,4 +44,7 @@ interface EpisodeDao {
 
     @Query("UPDATE EpisodeEntity SET playback_position_ms = :positionMs WHERE id = :episodeId")
     suspend fun updatePlaybackPosition(episodeId: Long, positionMs: Long)
+
+    @Query("DELETE FROM EpisodeEntity WHERE podcast_id = :podcastId")
+    suspend fun deleteEpisodesForPodcast(podcastId: Long)
 }

@@ -19,87 +19,27 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
-import code.name.monkey.retromusic.db.EpisodeDownloadState
-import code.name.monkey.retromusic.db.EpisodeEntity
 import code.name.monkey.retromusic.db.PodcastEntity
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/**
+ * Backs the podcasts grid tab (PodcastsFragment) -- just the subscribed-podcasts list and
+ * subscribing to new ones. Episode browsing/downloading is scoped per podcast now, in
+ * PodcastDetailsViewModel.
+ */
 class PodcastsViewModel(
-    private val repository: PodcastRepository,
-    private val downloadManager: EpisodeDownloadManager
+    private val repository: PodcastRepository
 ) : ViewModel() {
 
     val podcasts: LiveData<List<PodcastEntity>> = repository.podcasts().asLiveData()
 
-    private val _selectedPodcast = MutableLiveData<PodcastEntity?>()
-    val selectedPodcast: LiveData<PodcastEntity?> = _selectedPodcast
-
-    private val _episodes = MutableLiveData<List<EpisodeEntity>>(emptyList())
-    val episodes: LiveData<List<EpisodeEntity>> = _episodes
-
-    /** episode id -> 0-100, populated only while that episode is DOWNLOADING. */
-    private val _downloadProgress = MutableLiveData<Map<Long, Int>>(emptyMap())
-    val downloadProgress: LiveData<Map<Long, Int>> = _downloadProgress
-
     private val _subscribeError = MutableLiveData<String?>()
     val subscribeError: LiveData<String?> = _subscribeError
-
-    private var episodesJob: kotlinx.coroutines.Job? = null
-
-    init {
-        viewModelScope.launch {
-            while (true) {
-                val inFlight = _episodes.value.orEmpty()
-                    .filter { it.downloadState == EpisodeDownloadState.DOWNLOADING && it.downloadId != null }
-                if (inFlight.isNotEmpty()) {
-                    _downloadProgress.value = inFlight.associate { episode ->
-                        episode.id to (downloadManager.queryProgressPercent(episode.downloadId!!) ?: 0)
-                    }
-                }
-                delay(1500)
-            }
-        }
-    }
 
     fun subscribe(feedUrl: String) {
         viewModelScope.launch {
             repository.subscribe(feedUrl.trim())
-                .onSuccess { select(it) }
                 .onFailure { _subscribeError.postValue(it.message ?: "Failed to subscribe") }
-        }
-    }
-
-    fun select(podcast: PodcastEntity) {
-        _selectedPodcast.value = podcast
-        episodesJob?.cancel()
-        episodesJob = viewModelScope.launch {
-            repository.episodesForPodcast(podcast.id).collect { _episodes.postValue(it) }
-        }
-    }
-
-    fun refresh(podcast: PodcastEntity) {
-        viewModelScope.launch {
-            repository.refresh(podcast)
-        }
-    }
-
-    fun download(episode: EpisodeEntity) {
-        viewModelScope.launch {
-            downloadManager.enqueue(episode)
-        }
-    }
-
-    fun deleteDownload(episode: EpisodeEntity) {
-        viewModelScope.launch {
-            downloadManager.deleteDownload(episode)
-        }
-    }
-
-    /** Self-heals any episode stuck showing "Downloading…" -- see EpisodeDownloadManager docs. */
-    fun reconcileDownloads() {
-        viewModelScope.launch {
-            downloadManager.reconcileInFlightDownloads(_episodes.value.orEmpty())
         }
     }
 

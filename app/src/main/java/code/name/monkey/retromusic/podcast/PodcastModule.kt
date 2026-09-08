@@ -47,6 +47,10 @@ val podcastModule = module {
     }
 
     viewModel {
-        PodcastsViewModel(get(), get())
+        PodcastsViewModel(get())
+    }
+
+    viewModel { (podcastId: Long) ->
+        PodcastDetailsViewModel(get(), get(), podcastId)
     }
 }

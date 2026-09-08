@@ -36,6 +36,16 @@ class PodcastRepository(
     fun episodesForPodcast(podcastId: Long): Flow<List<EpisodeEntity>> =
         episodeDao.episodesForPodcast(podcastId)
 
+    suspend fun podcastById(podcastId: Long): PodcastEntity? = podcastDao.podcastById(podcastId)
+
+    /** Removes the podcast and its episode rows. Caller is responsible for cleaning up any
+     * downloaded episode files first (see EpisodeDownloadManager) -- this repository doesn't
+     * know about the download layer. */
+    suspend fun unsubscribe(podcast: PodcastEntity) = withContext(Dispatchers.IO) {
+        episodeDao.deleteEpisodesForPodcast(podcast.id)
+        podcastDao.deletePodcast(podcast)
+    }
+
     /** Subscribes to [feedUrl] if not already subscribed, then fetches its current episode list. */
     suspend fun subscribe(feedUrl: String): Result<PodcastEntity> = withContext(Dispatchers.IO) {
         runCatching {

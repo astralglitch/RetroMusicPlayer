@@ -28,6 +28,9 @@ import code.name.monkey.retromusic.ARTIST_DETAIL_SONG_SORT_ORDER
 import code.name.monkey.retromusic.ARTIST_GRID_SIZE
 import code.name.monkey.retromusic.ARTIST_GRID_SIZE_LAND
 import code.name.monkey.retromusic.ARTIST_GRID_STYLE
+import code.name.monkey.retromusic.PODCAST_GRID_SIZE
+import code.name.monkey.retromusic.PODCAST_GRID_SIZE_LAND
+import code.name.monkey.retromusic.PODCAST_GRID_STYLE
 import code.name.monkey.retromusic.ARTIST_SONG_SORT_ORDER
 import code.name.monkey.retromusic.ARTIST_SORT_ORDER
 import code.name.monkey.retromusic.AUDIO_FADE_DURATION
@@ -506,6 +509,17 @@ object PreferenceUtil {
             putInt(ARTIST_GRID_STYLE, value.id)
         }
 
+    var podcastGridStyle: GridStyle
+        get() {
+            val id: Int = sharedPreferences.getInt(PODCAST_GRID_STYLE, 0)
+            return GridStyle.values().firstOrNull { gridStyle ->
+                gridStyle.id == id
+            } ?: GridStyle.Grid
+        }
+        set(value) = sharedPreferences.edit {
+            putInt(PODCAST_GRID_STYLE, value.id)
+        }
+
     val filterLength get() = sharedPreferences.getInt(FILTER_SONG, 20)
 
     var lastVersion
@@ -646,6 +660,24 @@ object PreferenceUtil {
         )
         set(value) = sharedPreferences.edit {
             putInt(ALBUM_GRID_SIZE_LAND, value)
+        }
+
+    var podcastGridSize
+        get() = sharedPreferences.getInt(
+            PODCAST_GRID_SIZE,
+            App.getContext().getIntRes(R.integer.default_grid_columns)
+        )
+        set(value) = sharedPreferences.edit {
+            putInt(PODCAST_GRID_SIZE, value)
+        }
+
+    var podcastGridSizeLand
+        get() = sharedPreferences.getInt(
+            PODCAST_GRID_SIZE_LAND,
+            App.getContext().getIntRes(R.integer.default_grid_columns_land)
+        )
+        set(value) = sharedPreferences.edit {
+            putInt(PODCAST_GRID_SIZE_LAND, value)
         }
 
 
