@@ -42,6 +42,10 @@ val podcastModule = module {
         EpisodeDownloadManager(androidContext(), get())
     }
 
+    single {
+        EpisodePositionSaver(get())
+    }
+
     viewModel {
         PodcastsViewModel(get(), get())
     }

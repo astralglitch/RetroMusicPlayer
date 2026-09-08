@@ -69,6 +69,13 @@ class PodcastsViewModel(
         }
     }
 
+    /** Self-heals any episode stuck showing "Downloading…" -- see EpisodeDownloadManager docs. */
+    fun reconcileDownloads() {
+        viewModelScope.launch {
+            downloadManager.reconcileInFlightDownloads(_episodes.value.orEmpty())
+        }
+    }
+
     fun consumeSubscribeError() {
         _subscribeError.value = null
     }

@@ -117,6 +117,7 @@ import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Runnable
+import code.name.monkey.retromusic.podcast.EpisodePositionSaver
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -303,6 +304,19 @@ class MusicService : MediaBrowserServiceCompat(),
     private var wakeLock: WakeLock? = null
     private var notificationManager: NotificationManager? = null
     private var isForeground = false
+
+    private val episodePositionSaver by lazy {
+        get<EpisodePositionSaver>(EpisodePositionSaver::class.java)
+    }
+    private val episodePositionSaveTicker = object : Runnable {
+        override fun run() {
+            if (isPlaying) {
+                episodePositionSaver.save(currentSong, songProgressMillis)
+            }
+            uiThreadHandler?.postDelayed(this, EPISODE_POSITION_SAVE_INTERVAL_MS)
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         val powerManager = getSystemService<PowerManager>()
@@ -353,6 +367,7 @@ class MusicService : MediaBrowserServiceCompat(),
         }
         registerOnSharedPreferenceChangedListener(this)
         restoreState()
+        uiThreadHandler?.postDelayed(episodePositionSaveTicker, EPISODE_POSITION_SAVE_INTERVAL_MS)
         sendBroadcast(Intent("$RETRO_MUSIC_PACKAGE_NAME.RETRO_MUSIC_SERVICE_CREATED"))
         registerHeadsetEvents()
         registerBluetoothConnected()
@@ -362,6 +377,10 @@ class MusicService : MediaBrowserServiceCompat(),
     }
 
     override fun onDestroy() {
+        uiThreadHandler?.removeCallbacks(episodePositionSaveTicker)
+        if (songProgressMillis > 0) {
+            episodePositionSaver.save(currentSong, songProgressMillis)
+        }
         LocalBroadcastManager.getInstance(this).unregisterReceiver(widgetIntentReceiver)
         LocalBroadcastManager.getInstance(this).unregisterReceiver(updateFavoriteReceiver)
         unregisterReceiver(lockScreenReceiver)
@@ -1135,6 +1154,7 @@ class MusicService : MediaBrowserServiceCompat(),
                 val isPlaying = isPlaying
                 if (!isPlaying && songProgressMillis > 0) {
                     savePositionInTrack()
+                    episodePositionSaver.save(currentSong, songProgressMillis)
                 }
                 songPlayCountHelper.notifyPlayStateChanged(isPlaying)
                 playingNotification?.setPlaying(isPlaying)
@@ -1442,6 +1462,7 @@ class MusicService : MediaBrowserServiceCompat(),
 
     companion object {
         val TAG: String = MusicService::class.java.simpleName
+        private const val EPISODE_POSITION_SAVE_INTERVAL_MS = 5000L
         const val RETRO_MUSIC_PACKAGE_NAME = "code.name.monkey.retromusic"
         const val MUSIC_PACKAGE_NAME = "com.android.music"
         const val ACTION_TOGGLE_PAUSE = "$RETRO_MUSIC_PACKAGE_NAME.togglepause"

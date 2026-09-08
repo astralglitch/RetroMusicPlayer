@@ -71,7 +71,7 @@ class EpisodeDownloadManager(
                 override fun onReceive(ctx: Context, intent: Intent) {
                     val downloadId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
                     if (downloadId == -1L) return
-                    scope.launch(Dispatchers.IO) { onDownloadComplete(downloadId) }
+                    scope.launch(Dispatchers.IO) { reconcile(downloadId) }
                 }
             },
             IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
@@ -79,14 +79,31 @@ class EpisodeDownloadManager(
         )
     }
 
-    private suspend fun onDownloadComplete(downloadId: Long) {
+    /**
+     * Re-checks every episode still marked DOWNLOADING against the real DownloadManager state.
+     * The completion broadcast above is the fast path, but dynamically-registered receivers can
+     * miss it (process death, OEM battery management, app not in the foreground at the moment
+     * DownloadManager delivers it) -- so callers should also invoke this defensively, e.g. when
+     * the podcast screen resumes, to self-heal a row stuck showing "Downloading…" forever.
+     */
+    suspend fun reconcileInFlightDownloads(episodes: List<EpisodeEntity>) {
+        episodes
+            .filter { it.downloadState == EpisodeDownloadState.DOWNLOADING && it.downloadId != null }
+            .forEach { reconcile(it.downloadId!!) }
+    }
+
+    private suspend fun reconcile(downloadId: Long) {
         val episode = episodeDao.episodeForDownloadId(downloadId) ?: return
         val query = DownloadManager.Query().setFilterById(downloadId)
         downloadManager.query(query).use { cursor ->
             if (!cursor.moveToFirst()) return
             val statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
             val localUriIndex = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI)
-            val succeeded = cursor.getInt(statusIndex) == DownloadManager.STATUS_SUCCESSFUL
+            val status = cursor.getInt(statusIndex)
+            if (status == DownloadManager.STATUS_PENDING || status == DownloadManager.STATUS_RUNNING) {
+                return // genuinely still in progress, nothing to reconcile yet
+            }
+            val succeeded = status == DownloadManager.STATUS_SUCCESSFUL
             val localPath = if (succeeded) cursor.getString(localUriIndex)?.toUri()?.path else null
 
             episodeDao.upsertEpisode(

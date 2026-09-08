@@ -15,17 +15,15 @@
 package code.name.monkey.retromusic.podcast
 
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.FragmentPodcastsBinding
 import code.name.monkey.retromusic.db.EpisodeEntity
 import code.name.monkey.retromusic.extensions.showToast
+import code.name.monkey.retromusic.fragments.base.AbsMusicServiceFragment
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
@@ -35,7 +33,7 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
  * app's navigation graph or bottom nav yet; nav/multi-queue design is still open, so this is
  * reachable only for manual testing until that's settled.
  */
-class PodcastsFragment : Fragment() {
+class PodcastsFragment : AbsMusicServiceFragment(R.layout.fragment_podcasts) {
 
     private var _binding: FragmentPodcastsBinding? = null
     private val binding get() = _binding!!
@@ -45,17 +43,13 @@ class PodcastsFragment : Fragment() {
     private lateinit var podcastAdapter: PodcastAdapter
     private lateinit var episodeAdapter: EpisodeAdapter
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentPodcastsBinding.inflate(inflater, container, false)
-        return binding.root
-    }
+    /** Set right before opening a queue on an episode; consumed once its metadata loads. */
+    private var pendingResumeEpisodeId: Long? = null
+    private var pendingResumePositionMs: Int = 0
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        _binding = FragmentPodcastsBinding.bind(view)
 
         val initialTopPadding = binding.root.paddingTop
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, windowInsets ->
@@ -103,7 +97,28 @@ class PodcastsFragment : Fragment() {
         val episodes = viewModel.episodes.value.orEmpty()
         val startPosition = episodes.indexOf(episode).coerceAtLeast(0)
         val queue = episodes.map { it.toSong(podcast) }
+
+        // openQueue is async (goes through the service binder), so we can't seek right after
+        // calling it -- the new track isn't loaded yet. Instead, stash the resume target and
+        // consume it in onPlayingMetaChanged() once the service reports the episode is current.
+        if (episode.playbackPositionMs > 0) {
+            pendingResumeEpisodeId = episode.id
+            pendingResumePositionMs = episode.playbackPositionMs.toInt()
+        }
         MusicPlayerRemote.openQueue(queue, startPosition, true)
+    }
+
+    override fun onPlayingMetaChanged() {
+        val targetEpisodeId = pendingResumeEpisodeId ?: return
+        if (MusicPlayerRemote.currentSong.episodeIdOrNull() == targetEpisodeId) {
+            MusicPlayerRemote.seekTo(pendingResumePositionMs)
+            pendingResumeEpisodeId = null
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.reconcileDownloads()
     }
 
     override fun onDestroyView() {

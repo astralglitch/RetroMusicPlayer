@@ -22,9 +22,12 @@ import code.name.monkey.retromusic.model.Song
  * Separate id space from MediaStore song ids (which come from the device's content provider and
  * are arbitrary positive longs) so an episode can never collide with a real scanned track.
  */
-private const val EPISODE_SONG_ID_OFFSET = 1_000_000_000_000L
+const val EPISODE_SONG_ID_OFFSET = 1_000_000_000_000L
 
 fun EpisodeEntity.toSongId(): Long = EPISODE_SONG_ID_OFFSET + id
+
+/** The [EpisodeEntity.id] a playing [Song] came from, or null if it's not a podcast episode. */
+fun Song.episodeIdOrNull(): Long? = if (id >= EPISODE_SONG_ID_OFFSET) id - EPISODE_SONG_ID_OFFSET else null
 
 /**
  * Adapts an episode into the [Song] shape [code.name.monkey.retromusic.service.MusicService]

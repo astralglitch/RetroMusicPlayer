@@ -39,4 +39,7 @@ interface EpisodeDao {
 
     @Query("SELECT * FROM EpisodeEntity WHERE podcast_id = :podcastId AND guid = :guid LIMIT 1")
     suspend fun episodeForGuid(podcastId: Long, guid: String): EpisodeEntity?
+
+    @Query("UPDATE EpisodeEntity SET playback_position_ms = :positionMs WHERE id = :episodeId")
+    suspend fun updatePlaybackPosition(episodeId: Long, positionMs: Long)
 }
