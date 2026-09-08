@@ -37,6 +37,17 @@
             android:textAppearance="?attr/textAppearanceBodySmall"
             android:textColor="?android:attr/textColorSecondary"
             tools:text="Aug 23 · Downloaded" />
+
+        <ProgressBar
+            android:id="@+id/episodeProgress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="4dp"
+            android:layout_marginTop="6dp"
+            android:max="100"
+            android:visibility="gone"
+            tools:progress="40"
+            tools:visibility="visible" />
     </LinearLayout>
 
     <ImageButton

@@ -11,7 +11,10 @@
     <string name="podcast_play">Play episode</string>
     <string name="podcast_episodes">Episodes</string>
     <string name="podcast_resume">Resume</string>
+    <string name="podcast_filter">Filter episodes</string>
+    <string name="podcast_filter_all">All episodes</string>
     <string name="podcast_filter_downloaded">Downloaded only</string>
+    <string name="podcast_filter_in_progress">In progress</string>
     <string name="podcast_sort_newest">Newest first</string>
     <string name="podcast_sort_oldest">Oldest first</string>
     <string name="podcast_refresh">Refresh episodes</string>

@@ -58,10 +58,12 @@ class PodcastDetailsFragment : AbsMainActivityFragment(R.layout.fragment_podcast
     private var pendingResumeEpisodeId: Long? = null
     private var pendingResumePositionMs: Int = 0
 
+    private enum class EpisodeFilter { ALL, DOWNLOADED, IN_PROGRESS }
+
     // Session-only view state -- not persisted, since what belongs here long-term (a proper
     // filter/sort design) is still open per the podcast-nav redesign notes.
     private var sortNewestFirst = true
-    private var filterDownloadedOnly = false
+    private var filter = EpisodeFilter.ALL
     private var allEpisodes: List<EpisodeEntity> = emptyList()
 
     /** What's actually bound to the adapter right now (post filter/sort) -- playEpisode() needs
@@ -103,8 +105,12 @@ class PodcastDetailsFragment : AbsMainActivityFragment(R.layout.fragment_podcast
 
     private fun applyEpisodeListChanges() {
         var episodes = allEpisodes
-        if (filterDownloadedOnly) {
-            episodes = episodes.filter { it.downloadState == EpisodeDownloadState.DOWNLOADED }
+        episodes = when (filter) {
+            EpisodeFilter.ALL -> episodes
+            EpisodeFilter.DOWNLOADED -> episodes.filter { it.downloadState == EpisodeDownloadState.DOWNLOADED }
+            EpisodeFilter.IN_PROGRESS -> episodes.filter {
+                it.playbackPositionMs > 0 && it.durationMs > it.playbackPositionMs
+            }
         }
         episodes = if (sortNewestFirst) {
             episodes.sortedByDescending { it.pubDate }
@@ -170,17 +176,14 @@ class PodcastDetailsFragment : AbsMainActivityFragment(R.layout.fragment_podcast
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
         menuInflater.inflate(R.menu.menu_podcast_detail, menu)
-        menu.findItem(R.id.action_podcast_filter_downloaded).isChecked = filterDownloadedOnly
         val sortId = if (sortNewestFirst) R.id.action_podcast_sort_newest else R.id.action_podcast_sort_oldest
         menu.findItem(sortId).isChecked = true
     }
 
     override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
         when (menuItem.itemId) {
-            R.id.action_podcast_filter_downloaded -> {
-                filterDownloadedOnly = !menuItem.isChecked
-                menuItem.isChecked = filterDownloadedOnly
-                applyEpisodeListChanges()
+            R.id.action_podcast_filter -> {
+                showFilterDialog()
                 return true
             }
 
@@ -212,6 +215,23 @@ class PodcastDetailsFragment : AbsMainActivityFragment(R.layout.fragment_podcast
             }
         }
         return false
+    }
+
+    private fun showFilterDialog() {
+        val labels = arrayOf(
+            getString(R.string.podcast_filter_all),
+            getString(R.string.podcast_filter_downloaded),
+            getString(R.string.podcast_filter_in_progress)
+        )
+        val options = EpisodeFilter.values()
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.podcast_filter)
+            .setSingleChoiceItems(labels, options.indexOf(filter)) { dialog, which ->
+                filter = options[which]
+                applyEpisodeListChanges()
+                dialog.dismiss()
+            }
+            .show()
     }
 
     private fun confirmUnsubscribe() {

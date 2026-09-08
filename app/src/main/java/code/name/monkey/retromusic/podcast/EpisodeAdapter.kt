@@ -21,6 +21,7 @@ import android.view.MenuItem
 import android.view.ViewGroup
 import android.widget.PopupMenu
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -122,6 +123,14 @@ class EpisodeAdapter(
             val playedLabel = playedLabel(episode)
             binding.episodeMeta.text = listOfNotNull(date.ifBlank { null }, playedLabel, downloadLabel)
                 .joinToString(" · ")
+
+            if (playedLabel == "In progress") {
+                binding.episodeProgress.isVisible = true
+                binding.episodeProgress.progress =
+                    (episode.playbackPositionMs * 100 / episode.durationMs).toInt().coerceIn(0, 100)
+            } else {
+                binding.episodeProgress.isVisible = false
+            }
 
             val isDownloading = episode.downloadState == EpisodeDownloadState.DOWNLOADING
             val isDownloaded = episode.downloadState == EpisodeDownloadState.DOWNLOADED
