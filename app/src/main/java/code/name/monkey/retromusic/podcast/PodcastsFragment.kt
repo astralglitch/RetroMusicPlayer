@@ -63,7 +63,8 @@ class PodcastsFragment : AbsMusicServiceFragment(R.layout.fragment_podcasts) {
 
         episodeAdapter = EpisodeAdapter(
             onPlay = { playEpisode(it) },
-            onDownload = { viewModel.download(it) }
+            onDownload = { viewModel.download(it) },
+            onDeleteDownload = { viewModel.deleteDownload(it) }
         )
         binding.episodesRecyclerView.adapter = episodeAdapter
 
@@ -83,6 +84,7 @@ class PodcastsFragment : AbsMusicServiceFragment(R.layout.fragment_podcasts) {
         }
 
         viewModel.episodes.observe(viewLifecycleOwner) { episodeAdapter.submitList(it) }
+        viewModel.downloadProgress.observe(viewLifecycleOwner) { episodeAdapter.updateProgress(it) }
 
         viewModel.subscribeError.observe(viewLifecycleOwner) { error ->
             if (error != null) {

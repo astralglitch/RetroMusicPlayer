@@ -19,8 +19,10 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
+import code.name.monkey.retromusic.db.EpisodeDownloadState
 import code.name.monkey.retromusic.db.EpisodeEntity
 import code.name.monkey.retromusic.db.PodcastEntity
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class PodcastsViewModel(
@@ -36,10 +38,29 @@ class PodcastsViewModel(
     private val _episodes = MutableLiveData<List<EpisodeEntity>>(emptyList())
     val episodes: LiveData<List<EpisodeEntity>> = _episodes
 
+    /** episode id -> 0-100, populated only while that episode is DOWNLOADING. */
+    private val _downloadProgress = MutableLiveData<Map<Long, Int>>(emptyMap())
+    val downloadProgress: LiveData<Map<Long, Int>> = _downloadProgress
+
     private val _subscribeError = MutableLiveData<String?>()
     val subscribeError: LiveData<String?> = _subscribeError
 
     private var episodesJob: kotlinx.coroutines.Job? = null
+
+    init {
+        viewModelScope.launch {
+            while (true) {
+                val inFlight = _episodes.value.orEmpty()
+                    .filter { it.downloadState == EpisodeDownloadState.DOWNLOADING && it.downloadId != null }
+                if (inFlight.isNotEmpty()) {
+                    _downloadProgress.value = inFlight.associate { episode ->
+                        episode.id to (downloadManager.queryProgressPercent(episode.downloadId!!) ?: 0)
+                    }
+                }
+                delay(1500)
+            }
+        }
+    }
 
     fun subscribe(feedUrl: String) {
         viewModelScope.launch {
@@ -66,6 +87,12 @@ class PodcastsViewModel(
     fun download(episode: EpisodeEntity) {
         viewModelScope.launch {
             downloadManager.enqueue(episode)
+        }
+    }
+
+    fun deleteDownload(episode: EpisodeEntity) {
+        viewModelScope.launch {
+            downloadManager.deleteDownload(episode)
         }
     }
 

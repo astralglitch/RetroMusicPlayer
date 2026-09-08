@@ -19,6 +19,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.ItemEpisodeBinding
 import code.name.monkey.retromusic.db.EpisodeDownloadState
 import code.name.monkey.retromusic.db.EpisodeEntity
@@ -27,8 +28,20 @@ import java.util.Date
 
 class EpisodeAdapter(
     private val onPlay: (EpisodeEntity) -> Unit,
-    private val onDownload: (EpisodeEntity) -> Unit
+    private val onDownload: (EpisodeEntity) -> Unit,
+    private val onDeleteDownload: (EpisodeEntity) -> Unit
 ) : ListAdapter<EpisodeEntity, EpisodeAdapter.ViewHolder>(DIFF) {
+
+    /** episode id -> 0-100, set by PodcastsFragment as PodcastsViewModel.downloadProgress ticks. */
+    private var progressByEpisodeId: Map<Long, Int> = emptyMap()
+
+    fun updateProgress(progress: Map<Long, Int>) {
+        progressByEpisodeId = progress
+        progress.keys.forEach { episodeId ->
+            val position = currentList.indexOfFirst { it.id == episodeId }
+            if (position >= 0) notifyItemChanged(position)
+        }
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemEpisodeBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -48,19 +61,38 @@ class EpisodeAdapter(
             } else {
                 ""
             }
-            val statusLabel = when (episode.downloadState) {
+            val downloadLabel = when (episode.downloadState) {
                 EpisodeDownloadState.DOWNLOADED -> "Downloaded"
-                EpisodeDownloadState.DOWNLOADING -> "Downloading…"
+                EpisodeDownloadState.DOWNLOADING -> {
+                    val percent = progressByEpisodeId[episode.id]
+                    if (percent != null) "Downloading… $percent%" else "Downloading…"
+                }
+
                 EpisodeDownloadState.FAILED -> "Download failed"
                 EpisodeDownloadState.NOT_DOWNLOADED -> null
             }
-            binding.episodeMeta.text = listOfNotNull(date.ifBlank { null }, statusLabel)
+            val playedLabel = playedLabel(episode)
+            binding.episodeMeta.text = listOfNotNull(date.ifBlank { null }, playedLabel, downloadLabel)
                 .joinToString(" · ")
 
-            binding.downloadButton.isEnabled = episode.downloadState != EpisodeDownloadState.DOWNLOADING
-            binding.downloadButton.alpha = if (episode.downloadState == EpisodeDownloadState.DOWNLOADED) 0.4f else 1f
-            binding.downloadButton.setOnClickListener { onDownload(episode) }
+            val isDownloading = episode.downloadState == EpisodeDownloadState.DOWNLOADING
+            val isDownloaded = episode.downloadState == EpisodeDownloadState.DOWNLOADED
+            binding.downloadButton.isEnabled = !isDownloading
+            binding.downloadButton.alpha = if (isDownloading) 0.4f else 1f
+            binding.downloadButton.setImageResource(if (isDownloaded) R.drawable.ic_delete else R.drawable.ic_download)
+            binding.downloadButton.contentDescription = binding.root.context.getString(
+                if (isDownloaded) R.string.podcast_delete_download else R.string.podcast_download
+            )
+            binding.downloadButton.setOnClickListener {
+                if (isDownloaded) onDeleteDownload(episode) else onDownload(episode)
+            }
             binding.playButton.setOnClickListener { onPlay(episode) }
+        }
+
+        private fun playedLabel(episode: EpisodeEntity): String? {
+            if (episode.durationMs <= 0 || episode.playbackPositionMs <= 0) return null
+            val remainingMs = episode.durationMs - episode.playbackPositionMs
+            return if (remainingMs <= episode.durationMs * 0.05) "Played" else "In progress"
         }
     }
 

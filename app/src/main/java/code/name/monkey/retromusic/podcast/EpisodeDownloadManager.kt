@@ -80,6 +80,37 @@ class EpisodeDownloadManager(
     }
 
     /**
+     * 0-100, or null if DownloadManager has no size estimate yet (common right at the start of a
+     * transfer) or no longer knows about this download. Used to show real progress instead of a
+     * static "Downloading…" label, which reads as "stuck" on a slow connection even when it's
+     * still making progress.
+     */
+    fun queryProgressPercent(downloadId: Long): Int? {
+        val query = DownloadManager.Query().setFilterById(downloadId)
+        downloadManager.query(query).use { cursor ->
+            if (!cursor.moveToFirst()) return null
+            val downloadedSoFar =
+                cursor.getLong(cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
+            val totalSize = cursor.getLong(cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
+            if (totalSize <= 0) return null
+            return ((downloadedSoFar * 100) / totalSize).toInt().coerceIn(0, 100)
+        }
+    }
+
+    /** Removes the downloaded file (via DownloadManager, which also drops its own record) and resets state. */
+    suspend fun deleteDownload(episode: EpisodeEntity) {
+        episode.downloadId?.let { downloadManager.remove(it) }
+        episode.localFilePath?.let { File(it).delete() }
+        episodeDao.upsertEpisode(
+            episode.copy(
+                downloadState = EpisodeDownloadState.NOT_DOWNLOADED,
+                downloadId = null,
+                localFilePath = null
+            )
+        )
+    }
+
+    /**
      * Re-checks every episode still marked DOWNLOADING against the real DownloadManager state.
      * The completion broadcast above is the fast path, but dynamically-registered receivers can
      * miss it (process death, OEM battery management, app not in the foreground at the moment
