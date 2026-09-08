@@ -64,5 +64,10 @@ data class EpisodeEntity(
     val downloadId: Long? = null,
 
     @ColumnInfo(name = "playback_position_ms")
-    val playbackPositionMs: Long = 0
+    val playbackPositionMs: Long = 0,
+
+    /** Explicit played/unplayed state -- set automatically on natural completion (see
+     * EpisodePositionSaver) or manually via the episode long-press menu. Kept separate from
+     * playbackPositionMs so "mark as unplayed" doesn't have to also discard progress. */
+    val played: Boolean = false
 )

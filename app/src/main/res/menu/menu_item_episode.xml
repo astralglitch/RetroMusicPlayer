@@ -2,11 +2,8 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
-        android:id="@+id/action_play"
-        android:title="@string/action_play" />
-    <item
-        android:id="@+id/action_episode_download"
-        android:title="@string/podcast_download" />
+        android:id="@+id/action_episode_toggle_played"
+        android:title="@string/podcast_mark_as_played" />
     <item
         android:id="@+id/action_episode_delete_download"
         android:title="@string/podcast_delete_download" />

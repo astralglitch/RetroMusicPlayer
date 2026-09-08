@@ -88,6 +88,12 @@ class PodcastDetailsViewModel(
         }
     }
 
+    fun setPlayed(episode: EpisodeEntity, played: Boolean) {
+        viewModelScope.launch {
+            repository.setEpisodePlayed(episode.id, played)
+        }
+    }
+
     fun unsubscribe(onComplete: () -> Unit) {
         val podcast = _podcast.value ?: return
         viewModelScope.launch {

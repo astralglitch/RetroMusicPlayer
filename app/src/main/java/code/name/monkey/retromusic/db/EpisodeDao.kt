@@ -47,4 +47,7 @@ interface EpisodeDao {
 
     @Query("DELETE FROM EpisodeEntity WHERE podcast_id = :podcastId")
     suspend fun deleteEpisodesForPodcast(podcastId: Long)
+
+    @Query("UPDATE EpisodeEntity SET played = :played WHERE id = :episodeId")
+    suspend fun updatePlayed(episodeId: Long, played: Boolean)
 }

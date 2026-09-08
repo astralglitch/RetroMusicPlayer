@@ -31,6 +31,15 @@ class EpisodePositionSaver(private val episodeDao: EpisodeDao) {
 
     fun save(song: Song, positionMs: Int) {
         val episodeId = song.episodeIdOrNull() ?: return
-        scope.launch { episodeDao.updatePlaybackPosition(episodeId, positionMs.toLong()) }
+        scope.launch {
+            episodeDao.updatePlaybackPosition(episodeId, positionMs.toLong())
+            // Auto-mark as played on natural completion, mirroring how podcast apps treat
+            // "finished listening" -- duration comes from the Song (set from durationMs when
+            // queued), so this is skipped for episodes with unknown duration.
+            val remainingMs = song.duration - positionMs
+            if (song.duration > 0 && remainingMs <= song.duration * 0.05) {
+                episodeDao.updatePlayed(episodeId, true)
+            }
+        }
     }
 }

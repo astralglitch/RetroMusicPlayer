@@ -38,6 +38,10 @@ class PodcastRepository(
 
     suspend fun podcastById(podcastId: Long): PodcastEntity? = podcastDao.podcastById(podcastId)
 
+    suspend fun setEpisodePlayed(episodeId: Long, played: Boolean) = withContext(Dispatchers.IO) {
+        episodeDao.updatePlayed(episodeId, played)
+    }
+
     /** Removes the podcast and its episode rows. Caller is responsible for cleaning up any
      * downloaded episode files first (see EpisodeDownloadManager) -- this repository doesn't
      * know about the download layer. */

@@ -18,6 +18,7 @@ import android.graphics.Typeface
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.MenuItem
+import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupMenu
 import androidx.core.content.ContextCompat
@@ -36,7 +37,8 @@ import java.util.Date
 class EpisodeAdapter(
     private val onPlay: (EpisodeEntity) -> Unit,
     private val onDownload: (EpisodeEntity) -> Unit,
-    private val onDeleteDownload: (EpisodeEntity) -> Unit
+    private val onDeleteDownload: (EpisodeEntity) -> Unit,
+    private val onTogglePlayed: (EpisodeEntity, Boolean) -> Unit
 ) : ListAdapter<EpisodeEntity, EpisodeAdapter.ViewHolder>(DIFF) {
 
     /** episode id -> 0-100, set by PodcastsFragment as PodcastsViewModel.downloadProgress ticks. */
@@ -80,21 +82,24 @@ class EpisodeAdapter(
             binding.root.setOnClickListener {
                 onPlay(getItem(layoutPosition))
             }
-            binding.menu.setOnClickListener { showMenu(it) }
+            binding.root.setOnLongClickListener {
+                showMenu(it)
+                true
+            }
         }
 
-        private fun showMenu(anchor: android.view.View) {
+        private fun showMenu(anchor: View) {
             val episode = getItem(layoutPosition)
             val popupMenu = PopupMenu(anchor.context, anchor)
             popupMenu.inflate(R.menu.menu_item_episode)
-            val isDownloaded = episode.downloadState == EpisodeDownloadState.DOWNLOADED
-            val isDownloading = episode.downloadState == EpisodeDownloadState.DOWNLOADING
-            popupMenu.menu.findItem(R.id.action_episode_download).isVisible = !isDownloaded && !isDownloading
-            popupMenu.menu.findItem(R.id.action_episode_delete_download).isVisible = isDownloaded || isDownloading
+            popupMenu.menu.findItem(R.id.action_episode_toggle_played).setTitle(
+                if (episode.played) R.string.podcast_mark_as_unplayed else R.string.podcast_mark_as_played
+            )
+            popupMenu.menu.findItem(R.id.action_episode_delete_download).isVisible =
+                episode.downloadState == EpisodeDownloadState.DOWNLOADED
             popupMenu.setOnMenuItemClickListener { item: MenuItem ->
                 when (item.itemId) {
-                    R.id.action_play -> onPlay(episode)
-                    R.id.action_episode_download -> onDownload(episode)
+                    R.id.action_episode_toggle_played -> onTogglePlayed(episode, !episode.played)
                     R.id.action_episode_delete_download -> onDeleteDownload(episode)
                     else -> return@setOnMenuItemClickListener false
                 }
@@ -120,11 +125,16 @@ class EpisodeAdapter(
                 EpisodeDownloadState.FAILED -> "Download failed"
                 EpisodeDownloadState.NOT_DOWNLOADED -> null
             }
-            val playedLabel = playedLabel(episode)
+            val inProgress = !episode.played && episode.playbackPositionMs > 0
+            val playedLabel = when {
+                episode.played -> "Played"
+                inProgress -> "In progress"
+                else -> null
+            }
             binding.episodeMeta.text = listOfNotNull(date.ifBlank { null }, playedLabel, downloadLabel)
                 .joinToString(" · ")
 
-            if (playedLabel == "In progress") {
+            if (inProgress && episode.durationMs > 0) {
                 binding.episodeProgress.isVisible = true
                 binding.episodeProgress.progress =
                     (episode.playbackPositionMs * 100 / episode.durationMs).toInt().coerceIn(0, 100)
@@ -132,28 +142,33 @@ class EpisodeAdapter(
                 binding.episodeProgress.isVisible = false
             }
 
+            // Greyed out once played, same idea as a read/listened marker elsewhere in the app.
+            binding.root.alpha = if (episode.played) 0.55f else 1f
+
             val isDownloading = episode.downloadState == EpisodeDownloadState.DOWNLOADING
             val isDownloaded = episode.downloadState == EpisodeDownloadState.DOWNLOADED
-            // A stuck-looking transfer (dead/starved connection) needs a way out -- the button
-            // stays enabled during DOWNLOADING too, as a cancel action, rather than being inert.
-            binding.downloadButton.isEnabled = true
-            binding.downloadButton.alpha = 1f
             binding.downloadButton.setImageResource(
                 when {
-                    isDownloaded -> R.drawable.ic_delete
+                    isDownloaded -> R.drawable.ic_play_arrow
                     isDownloading -> R.drawable.ic_close
                     else -> R.drawable.ic_download
                 }
             )
             binding.downloadButton.contentDescription = binding.root.context.getString(
                 when {
-                    isDownloaded -> R.string.podcast_delete_download
+                    isDownloaded -> R.string.podcast_play
                     isDownloading -> R.string.podcast_cancel_download
                     else -> R.string.podcast_download
                 }
             )
             binding.downloadButton.setOnClickListener {
-                if (isDownloaded || isDownloading) onDeleteDownload(episode) else onDownload(episode)
+                when {
+                    isDownloaded -> onPlay(episode)
+                    // A stuck-looking transfer (dead/starved connection) needs a way out -- the
+                    // button stays enabled during DOWNLOADING too, as a cancel action.
+                    isDownloading -> onDeleteDownload(episode)
+                    else -> onDownload(episode)
+                }
             }
 
             val context = binding.root.context
@@ -172,12 +187,6 @@ class EpisodeAdapter(
                 binding.episodeTitle.setTextColor(normalColor)
                 binding.episodeTitle.setTypeface(null, Typeface.NORMAL)
             }
-        }
-
-        private fun playedLabel(episode: EpisodeEntity): String? {
-            if (episode.durationMs <= 0 || episode.playbackPositionMs <= 0) return null
-            val remainingMs = episode.durationMs - episode.playbackPositionMs
-            return if (remainingMs <= episode.durationMs * 0.05) "Played" else "In progress"
         }
     }
 

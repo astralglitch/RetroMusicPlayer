@@ -81,7 +81,8 @@ class PodcastDetailsFragment : AbsMainActivityFragment(R.layout.fragment_podcast
         episodeAdapter = EpisodeAdapter(
             onPlay = { playEpisode(it) },
             onDownload = { viewModel.download(it) },
-            onDeleteDownload = { viewModel.deleteDownload(it) }
+            onDeleteDownload = { viewModel.deleteDownload(it) },
+            onTogglePlayed = { episode, played -> viewModel.setPlayed(episode, played) }
         )
         binding.episodesRecyclerView.apply {
             layoutManager = LinearLayoutManager(requireContext())
@@ -108,9 +109,7 @@ class PodcastDetailsFragment : AbsMainActivityFragment(R.layout.fragment_podcast
         episodes = when (filter) {
             EpisodeFilter.ALL -> episodes
             EpisodeFilter.DOWNLOADED -> episodes.filter { it.downloadState == EpisodeDownloadState.DOWNLOADED }
-            EpisodeFilter.IN_PROGRESS -> episodes.filter {
-                it.playbackPositionMs > 0 && it.durationMs > it.playbackPositionMs
-            }
+            EpisodeFilter.IN_PROGRESS -> episodes.filter { !it.played && it.playbackPositionMs > 0 }
         }
         episodes = if (sortNewestFirst) {
             episodes.sortedByDescending { it.pubDate }
@@ -127,7 +126,7 @@ class PodcastDetailsFragment : AbsMainActivityFragment(R.layout.fragment_podcast
     private fun resumePlayback() {
         if (allEpisodes.isEmpty()) return
         val inProgress = allEpisodes
-            .filter { it.playbackPositionMs > 0 && it.durationMs > it.playbackPositionMs }
+            .filter { !it.played && it.playbackPositionMs > 0 }
             .maxByOrNull { it.pubDate }
         val target = inProgress ?: allEpisodes.maxByOrNull { it.pubDate } ?: return
         playEpisode(target)

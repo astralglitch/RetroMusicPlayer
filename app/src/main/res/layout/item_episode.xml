@@ -58,9 +58,4 @@
         android:contentDescription="@string/podcast_download"
         android:src="@drawable/ic_download" />
 
-    <androidx.appcompat.widget.AppCompatImageView
-        android:id="@+id/menu"
-        style="@style/OverFlowButton"
-        app:tint="?attr/colorControlNormal" />
-
 </LinearLayout>
