@@ -158,12 +158,21 @@ object PreferenceUtil {
                 LIBRARY_CATEGORIES,
                 gson.toJson(defaultCategories, collectionType)
             )
-            return try {
+            val saved: List<CategoryInfo> = try {
                 Gson().fromJson(data, collectionType)
             } catch (e: JsonSyntaxException) {
                 e.printStackTrace()
                 return defaultCategories
             }
+            // A category added after this list was first saved (e.g. Podcasts) is absent from
+            // what's on disk -- Gson only replays what it's given, it doesn't backfill new enum
+            // entries. Append any such category (hidden by default) so it at least shows up to
+            // be toggled on, rather than being permanently invisible for any existing install.
+            val savedCategories = saved.map { it.category }.toSet()
+            val missing = CategoryInfo.Category.values()
+                .filter { it !in savedCategories }
+                .map { CategoryInfo(it, visible = false) }
+            return if (missing.isEmpty()) saved else saved + missing
         }
         set(value) {
             val collectionType = object : TypeToken<List<CategoryInfo?>?>() {}.type

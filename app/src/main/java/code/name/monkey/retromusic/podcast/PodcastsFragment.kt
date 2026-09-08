@@ -16,6 +16,9 @@ package code.name.monkey.retromusic.podcast
 
 import android.os.Bundle
 import android.view.View
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.FragmentPodcastsBinding
 import code.name.monkey.retromusic.db.EpisodeEntity
@@ -48,6 +51,16 @@ class PodcastsFragment : AbsMusicServiceFragment(R.layout.fragment_podcasts) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentPodcastsBinding.bind(view)
+
+        // Reached as a plain main_graph destination (like HomeFragment/SongsFragment), each of
+        // which draws its own app bar under the status bar -- this one doesn't have one yet, so
+        // pad manually rather than let the subscribe row sit under the status bar.
+        val initialTopPadding = binding.root.paddingTop
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, windowInsets ->
+            val statusBarInset = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars()).top
+            v.updatePadding(top = initialTopPadding + statusBarInset)
+            windowInsets
+        }
 
         podcastAdapter = PodcastAdapter { viewModel.select(it) }
         binding.podcastsRecyclerView.adapter = podcastAdapter
