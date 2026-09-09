@@ -36,6 +36,16 @@ class PodcastRepository(
     fun episodesForPodcast(podcastId: Long): Flow<List<EpisodeEntity>> =
         episodeDao.episodesForPodcast(podcastId)
 
+    /** In-progress episodes across all subscriptions, newest first -- backs the Podcasts-world
+     * Home "Continue Listening" section. */
+    fun continueListening(limit: Int = 12): Flow<List<EpisodeEntity>> =
+        episodeDao.continueListening(limit)
+
+    /** Not-yet-started episodes across all subscriptions, newest first -- backs the Podcasts-world
+     * Home "New Episodes" section. */
+    fun newEpisodes(limit: Int = 12): Flow<List<EpisodeEntity>> =
+        episodeDao.newEpisodes(limit)
+
     suspend fun podcastById(podcastId: Long): PodcastEntity? = podcastDao.podcastById(podcastId)
 
     suspend fun setEpisodePlayed(episodeId: Long, played: Boolean) = withContext(Dispatchers.IO) {

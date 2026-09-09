@@ -95,14 +95,14 @@
             app:argType="long" />
     </fragment>
 
-    <!-- Placeholder Podcasts-world tabs, see AbsPodcastPlaceholderFragment and
-         PodcastCategoryInfo.Category. Real screens land as follow-up work. -->
     <fragment
         android:id="@+id/podcasts_home_fragment"
-        android:name="code.name.monkey.retromusic.podcast.PodcastsHomeFragment"
+        android:name="code.name.monkey.retromusic.podcast.PodcastHomeFragment"
         android:label="@string/podcast_tab_home"
-        tools:layout="@layout/fragment_podcast_placeholder" />
+        tools:layout="@layout/fragment_podcast_home" />
 
+    <!-- Placeholder Podcasts-world tabs, see AbsPodcastPlaceholderFragment and
+         PodcastCategoryInfo.Category. Real screens land as follow-up work. -->
     <fragment
         android:id="@+id/podcasts_queue_fragment"
         android:name="code.name.monkey.retromusic.podcast.PodcastQueueFragment"

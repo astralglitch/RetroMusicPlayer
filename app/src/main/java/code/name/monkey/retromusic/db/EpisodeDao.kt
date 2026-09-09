@@ -50,4 +50,10 @@ interface EpisodeDao {
 
     @Query("UPDATE EpisodeEntity SET played = :played WHERE id = :episodeId")
     suspend fun updatePlayed(episodeId: Long, played: Boolean)
+
+    @Query("SELECT * FROM EpisodeEntity WHERE playback_position_ms > 0 AND played = 0 ORDER BY pub_date DESC LIMIT :limit")
+    fun continueListening(limit: Int): Flow<List<EpisodeEntity>>
+
+    @Query("SELECT * FROM EpisodeEntity WHERE playback_position_ms = 0 AND played = 0 ORDER BY pub_date DESC LIMIT :limit")
+    fun newEpisodes(limit: Int): Flow<List<EpisodeEntity>>
 }

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Copyright (c) 2020 Hemanth Savarla.
+  ~
+  ~ Licensed under the GNU General Public License v3
+  ~
+  ~ This is free software: you can redistribute it and/or modify it
+  ~ under the terms of the GNU General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+  ~
+  ~ This software is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  ~ without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  ~ See the GNU General Public License for more details.
+  -->
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
+
+    <code.name.monkey.retromusic.views.TopAppBarLayout
+        android:id="@+id/appBarLayout"
+        style="?appBarLayoutStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fitsSystemWindows="true" />
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:overScrollMode="@integer/overScrollMode"
+        app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:overScrollMode="@integer/overScrollMode"
+                android:paddingBottom="16dp"
+                tools:listitem="@layout/section_recycler_view"
+                xmlns:tools="http://schemas.android.com/tools" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/emptyText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="96dp"
+                android:gravity="center"
+                android:paddingHorizontal="32dp"
+                android:text="@string/podcast_home_empty"
+                android:textAppearance="@style/TextViewSubtitle1"
+                android:textColor="?android:attr/textColorSecondary"
+                android:visibility="gone" />
+
+        </FrameLayout>
+
+    </androidx.core.widget.NestedScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
