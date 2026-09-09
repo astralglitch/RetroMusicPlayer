@@ -56,6 +56,14 @@ class MainActivity : AbsCastActivity() {
         PodcastCategoryInfo.Category.values().map { it.id }.toSet()
     }
 
+    private enum class World { MUSIC, PODCASTS }
+
+    /** Which world's tabs the bottom nav is currently showing -- rebuilding
+     * navigationView.menu on every same-world navigation (not just an actual world switch)
+     * cleared and re-added every item each time, which read as a glitchy redraw/animation on
+     * every tab tap. Null until the first destination-changed callback runs. */
+    private var currentBottomNavWorld: World? = null
+
     private val musicWorldDestinationIds: Set<Int> = setOf(
         R.id.action_home, R.id.action_song, R.id.action_album, R.id.action_artist,
         R.id.action_folder, R.id.action_playlist, R.id.action_genre, R.id.action_search
@@ -158,9 +166,13 @@ class MainActivity : AbsCastActivity() {
                     // keep their back-arrow/swipe-back untouched.
                     drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
                     worldDrawer.setCheckedItem(R.id.nav_world_music)
-                    // The bottom nav may still be showing the Podcasts world's tabs (e.g.
-                    // returning here via the drawer) -- rebuild it from the Music tab prefs.
-                    updateTabs()
+                    // Only rebuild the bottom nav's menu on an actual world switch -- doing it
+                    // on every same-world navigation cleared+re-added every item each time,
+                    // which showed up as a glitchy redraw on every tab tap.
+                    if (currentBottomNavWorld != World.MUSIC) {
+                        updateTabs()
+                        currentBottomNavWorld = World.MUSIC
+                    }
                 }
                 in podcastWorldDestinationIds -> {
                     if (PreferenceUtil.rememberLastTab) {
@@ -169,9 +181,10 @@ class MainActivity : AbsCastActivity() {
                     setBottomNavVisibility(visible = true, animate = true)
                     drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
                     worldDrawer.setCheckedItem(R.id.nav_world_podcasts)
-                    // Same idea as updateTabs() above -- rebuild in case the bottom nav is still
-                    // showing Music tabs, or a category got hidden/reordered since last shown.
-                    showPodcastsWorldTabs()
+                    if (currentBottomNavWorld != World.PODCASTS) {
+                        showPodcastsWorldTabs()
+                        currentBottomNavWorld = World.PODCASTS
+                    }
                 }
                 R.id.playing_queue_fragment -> {
                     setBottomNavVisibility(visible = false, hideBottomSheet = true)
