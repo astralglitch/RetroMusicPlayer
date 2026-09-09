@@ -31,6 +31,7 @@ import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.helper.SearchQueryHelper.getSongs
 import code.name.monkey.retromusic.interfaces.IScrollHelper
 import code.name.monkey.retromusic.model.CategoryInfo
+import code.name.monkey.retromusic.model.PodcastCategoryInfo
 import code.name.monkey.retromusic.model.Song
 import code.name.monkey.retromusic.repository.PlaylistSongsLoader
 import code.name.monkey.retromusic.service.MusicService
@@ -45,6 +46,27 @@ class MainActivity : AbsCastActivity() {
     companion object {
         const val TAG = "MainActivity"
         const val EXPAND_PANEL = "expand_panel"
+    }
+
+    /** Every destination id that belongs to the Podcasts world's bottom nav -- see
+     * PodcastCategoryInfo.Category. Whichever of these is currently visible/reachable, landing
+     * on it should look and behave like the Podcasts world (drawer checked state, bottom-nav
+     * tabs), the same way the Music tab ids are matched below. */
+    private val podcastWorldDestinationIds: Set<Int> by lazy {
+        PodcastCategoryInfo.Category.values().map { it.id }.toSet()
+    }
+
+    private val musicWorldDestinationIds: Set<Int> = setOf(
+        R.id.action_home, R.id.action_song, R.id.action_album, R.id.action_artist,
+        R.id.action_folder, R.id.action_playlist, R.id.action_genre, R.id.action_search
+    )
+
+    /** Only these ids are legitimate `PreferenceUtil.lastTab` values -- a raw resource int
+     * persisted across builds can drift onto an unrelated (and possibly argument-requiring)
+     * destination once new resources shift Android's auto-assigned ids, which crashed the app
+     * on startup once already (lastTab silently became podcastDetailsFragment's id). */
+    private val topLevelDestinationIds: Set<Int> by lazy {
+        musicWorldDestinationIds + podcastWorldDestinationIds
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,7 +90,11 @@ class MainActivity : AbsCastActivity() {
         worldDrawer.setNavigationItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_world_music -> findNavController(R.id.fragment_container).navigate(R.id.action_home)
-                R.id.nav_world_podcasts -> findNavController(R.id.fragment_container).navigate(R.id.podcasts_fragment)
+                R.id.nav_world_podcasts -> {
+                    val firstVisible = PreferenceUtil.podcastCategory.firstOrNull { it.visible }
+                        ?.category?.id ?: R.id.podcasts_fragment
+                    findNavController(R.id.fragment_container).navigate(firstVisible)
+                }
             }
             drawerLayout.closeDrawer(GravityCompat.START)
             true
@@ -91,8 +117,9 @@ class MainActivity : AbsCastActivity() {
 
         val categoryInfo: CategoryInfo = PreferenceUtil.libraryCategory.first { it.visible }
         if (categoryInfo.visible) {
-            if (!navGraph.contains(PreferenceUtil.lastTab)) PreferenceUtil.lastTab =
-                categoryInfo.category.id
+            val lastTabIsValid = navGraph.contains(PreferenceUtil.lastTab) &&
+                PreferenceUtil.lastTab in topLevelDestinationIds
+            if (!lastTabIsValid) PreferenceUtil.lastTab = categoryInfo.category.id
             navGraph.setStartDestination(
                 if (PreferenceUtil.rememberLastTab) {
                     PreferenceUtil.lastTab.let {
@@ -120,7 +147,7 @@ class MainActivity : AbsCastActivity() {
                 currentFragment(R.id.fragment_container)?.enterTransition = null
             }
             when (destination.id) {
-                R.id.action_home, R.id.action_song, R.id.action_album, R.id.action_artist, R.id.action_folder, R.id.action_playlist, R.id.action_genre, R.id.action_search -> {
+                in musicWorldDestinationIds -> {
                     // Save the last tab
                     if (PreferenceUtil.rememberLastTab) {
                         saveTab(destination.id)
@@ -135,13 +162,15 @@ class MainActivity : AbsCastActivity() {
                     // returning here via the drawer) -- rebuild it from the Music tab prefs.
                     updateTabs()
                 }
-                R.id.podcasts_fragment -> {
+                in podcastWorldDestinationIds -> {
                     if (PreferenceUtil.rememberLastTab) {
                         saveTab(destination.id)
                     }
                     setBottomNavVisibility(visible = true, animate = true)
                     drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
                     worldDrawer.setCheckedItem(R.id.nav_world_podcasts)
+                    // Same idea as updateTabs() above -- rebuild in case the bottom nav is still
+                    // showing Music tabs, or a category got hidden/reordered since last shown.
                     showPodcastsWorldTabs()
                 }
                 R.id.playing_queue_fragment -> {
@@ -159,21 +188,26 @@ class MainActivity : AbsCastActivity() {
         }
     }
 
-    /** The Podcasts world's own bottom-nav tabs -- just "Subscriptions" (the old Podcasts Music
-     * tab, moved here and renamed) for now; Downloads/Queue etc. are follow-up work per the
-     * podcast nav redesign notes. */
+    /** The Podcasts world's own bottom-nav tabs, customizable the same way as the Music tabs
+     * (see PersonalizeSettingsFragment's Music equivalent) via the Podcasts settings screen. */
     private fun showPodcastsWorldTabs() {
         navigationView.menu.clear()
-        navigationView.menu.add(0, R.id.podcasts_fragment, 0, R.string.podcast_subscriptions_tab)
-            .setIcon(R.drawable.ic_mic)
+        for (tab in PreferenceUtil.podcastCategory) {
+            if (tab.visible) {
+                val category = tab.category
+                navigationView.menu.add(0, category.id, 0, category.stringRes)
+                    .setIcon(category.icon)
+            }
+        }
     }
 
     private fun saveTab(id: Int) {
-        // Podcasts is a drawer "world" now, not a Music libraryCategory tab, so it's never
-        // "visible" in that list -- but it's still a legitimate last-tab destination to restore.
+        // Podcasts-world tabs are a separate preference list (PreferenceUtil.podcastCategory),
+        // not part of the Music libraryCategory list saveTab() otherwise checks against.
         val isMusicTabVisible =
             PreferenceUtil.libraryCategory.firstOrNull { it.category.id == id }?.visible == true
-        if (isMusicTabVisible || id == R.id.podcasts_fragment) {
+        val isPodcastTabVisible = id in podcastWorldDestinationIds
+        if (isMusicTabVisible || isPodcastTabVisible) {
             PreferenceUtil.lastTab = id
         }
     }

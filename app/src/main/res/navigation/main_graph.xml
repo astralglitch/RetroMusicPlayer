@@ -95,6 +95,56 @@
             app:argType="long" />
     </fragment>
 
+    <!-- Placeholder Podcasts-world tabs, see AbsPodcastPlaceholderFragment and
+         PodcastCategoryInfo.Category. Real screens land as follow-up work. -->
+    <fragment
+        android:id="@+id/podcasts_home_fragment"
+        android:name="code.name.monkey.retromusic.podcast.PodcastsHomeFragment"
+        android:label="@string/podcast_tab_home"
+        tools:layout="@layout/fragment_podcast_placeholder" />
+
+    <fragment
+        android:id="@+id/podcasts_queue_fragment"
+        android:name="code.name.monkey.retromusic.podcast.PodcastQueueFragment"
+        android:label="@string/podcast_tab_queue"
+        tools:layout="@layout/fragment_podcast_placeholder" />
+
+    <fragment
+        android:id="@+id/podcasts_inbox_fragment"
+        android:name="code.name.monkey.retromusic.podcast.PodcastInboxFragment"
+        android:label="@string/podcast_tab_inbox"
+        tools:layout="@layout/fragment_podcast_placeholder" />
+
+    <fragment
+        android:id="@+id/podcasts_episodes_fragment"
+        android:name="code.name.monkey.retromusic.podcast.PodcastEpisodesFragment"
+        android:label="@string/podcast_tab_episodes"
+        tools:layout="@layout/fragment_podcast_placeholder" />
+
+    <fragment
+        android:id="@+id/podcasts_downloads_fragment"
+        android:name="code.name.monkey.retromusic.podcast.PodcastDownloadsFragment"
+        android:label="@string/podcast_tab_downloads"
+        tools:layout="@layout/fragment_podcast_placeholder" />
+
+    <fragment
+        android:id="@+id/podcasts_history_fragment"
+        android:name="code.name.monkey.retromusic.podcast.PodcastHistoryFragment"
+        android:label="@string/podcast_tab_history"
+        tools:layout="@layout/fragment_podcast_placeholder" />
+
+    <fragment
+        android:id="@+id/podcasts_favorites_fragment"
+        android:name="code.name.monkey.retromusic.podcast.PodcastFavoritesFragment"
+        android:label="@string/podcast_tab_favorites"
+        tools:layout="@layout/fragment_podcast_placeholder" />
+
+    <fragment
+        android:id="@+id/podcasts_statistics_fragment"
+        android:name="code.name.monkey.retromusic.podcast.PodcastStatisticsFragment"
+        android:label="@string/podcast_tab_statistics"
+        tools:layout="@layout/fragment_podcast_placeholder" />
+
     <fragment
         android:id="@+id/action_album"
         android:name="code.name.monkey.retromusic.fragments.albums.AlbumsFragment"

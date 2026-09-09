@@ -75,7 +75,20 @@
             app:launchSingleTop="true"
             app:popEnterAnim="@anim/retro_fragment_close_enter"
             app:popExitAnim="@anim/retro_fragment_close_exit" />
+
+        <action
+            android:id="@+id/action_mainSettingsFragment_to_podcastsSettingsFragment"
+            app:destination="@id/podcastsSettingsFragment"
+            app:enterAnim="@anim/retro_fragment_open_enter"
+            app:exitAnim="@anim/retro_fragment_open_exit"
+            app:popEnterAnim="@anim/retro_fragment_close_enter"
+            app:popExitAnim="@anim/retro_fragment_close_exit" />
     </fragment>
+
+    <fragment
+        android:id="@+id/podcastsSettingsFragment"
+        android:name="code.name.monkey.retromusic.fragments.settings.PodcastsSettingsFragment"
+        android:label="Podcasts" />
 
     <fragment
         android:id="@+id/audioSettings"

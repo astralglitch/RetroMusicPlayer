@@ -63,6 +63,7 @@ import code.name.monkey.retromusic.LAST_DIRECTORY
 import code.name.monkey.retromusic.LAST_SLEEP_TIMER_VALUE
 import code.name.monkey.retromusic.LAST_USED_TAB
 import code.name.monkey.retromusic.LIBRARY_CATEGORIES
+import code.name.monkey.retromusic.PODCAST_CATEGORIES
 import code.name.monkey.retromusic.LOCALE_AUTO_STORE_ENABLED
 import code.name.monkey.retromusic.LOCK_SCREEN
 import code.name.monkey.retromusic.LYRICS_OPTIONS
@@ -121,6 +122,7 @@ import code.name.monkey.retromusic.helper.SortOrder.GenreSortOrder
 import code.name.monkey.retromusic.helper.SortOrder.PlaylistSortOrder
 import code.name.monkey.retromusic.helper.SortOrder.SongSortOrder
 import code.name.monkey.retromusic.model.CategoryInfo
+import code.name.monkey.retromusic.model.PodcastCategoryInfo
 import code.name.monkey.retromusic.transform.CascadingPageTransformer
 import code.name.monkey.retromusic.transform.DepthTransformation
 import code.name.monkey.retromusic.transform.HingeTransformation
@@ -190,6 +192,47 @@ object PreferenceUtil {
             val collectionType = object : TypeToken<List<CategoryInfo?>?>() {}.type
             sharedPreferences.edit {
                 putString(LIBRARY_CATEGORIES, Gson().toJson(value, collectionType))
+            }
+        }
+
+    val defaultPodcastCategories = listOf(
+        PodcastCategoryInfo(PodcastCategoryInfo.Category.Home, true),
+        PodcastCategoryInfo(PodcastCategoryInfo.Category.Subscriptions, true),
+        PodcastCategoryInfo(PodcastCategoryInfo.Category.Downloads, true),
+        PodcastCategoryInfo(PodcastCategoryInfo.Category.Queue, true),
+        PodcastCategoryInfo(PodcastCategoryInfo.Category.Inbox, false),
+        PodcastCategoryInfo(PodcastCategoryInfo.Category.Episodes, false),
+        PodcastCategoryInfo(PodcastCategoryInfo.Category.History, false),
+        PodcastCategoryInfo(PodcastCategoryInfo.Category.Favorites, false),
+        PodcastCategoryInfo(PodcastCategoryInfo.Category.Statistics, false)
+    )
+
+    /** The Podcasts world's own bottom-nav tabs -- see [PodcastCategoryInfo]. */
+    var podcastCategory: List<PodcastCategoryInfo>
+        get() {
+            val gson = Gson()
+            val collectionType = object : TypeToken<List<PodcastCategoryInfo>>() {}.type
+
+            val data = sharedPreferences.getStringOrDefault(
+                PODCAST_CATEGORIES,
+                gson.toJson(defaultPodcastCategories, collectionType)
+            )
+            val saved: List<PodcastCategoryInfo> = try {
+                Gson().fromJson(data, collectionType)
+            } catch (e: JsonSyntaxException) {
+                e.printStackTrace()
+                return defaultPodcastCategories
+            }
+            val savedCategories = saved.map { it.category }.toSet()
+            val missing = PodcastCategoryInfo.Category.values()
+                .filter { it !in savedCategories }
+                .map { PodcastCategoryInfo(it, visible = false) }
+            return if (missing.isEmpty()) saved else saved + missing
+        }
+        set(value) {
+            val collectionType = object : TypeToken<List<PodcastCategoryInfo?>?>() {}.type
+            sharedPreferences.edit {
+                putString(PODCAST_CATEGORIES, Gson().toJson(value, collectionType))
             }
         }
 

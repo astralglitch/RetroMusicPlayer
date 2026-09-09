@@ -52,6 +52,15 @@
 
 
         <code.name.monkey.retromusic.views.SettingListItemView
+            android:id="@+id/podcastsSettings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:settingListItemIcon="@drawable/ic_mic"
+            app:settingListItemIconColor="@color/md_amber_A400"
+            app:settingListItemText="@string/podcast_settings_summary"
+            app:settingListItemTitle="@string/podcast_settings_title" />
+
+        <code.name.monkey.retromusic.views.SettingListItemView
             android:id="@+id/imageSettings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

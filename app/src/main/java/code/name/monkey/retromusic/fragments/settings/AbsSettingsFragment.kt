@@ -81,6 +81,10 @@ abstract class AbsSettingsFragment : ATEPreferenceFragmentCompat() {
                 val fragment = LibraryPreferenceDialog.newInstance()
                 fragment.show(childFragmentManager, preference.key)
             }
+            is PodcastLibraryPreference -> {
+                val fragment = PodcastLibraryPreferenceDialog.newInstance()
+                fragment.show(childFragmentManager, preference.key)
+            }
             is NowPlayingScreenPreference -> {
                 val fragment = NowPlayingScreenPreferenceDialog.newInstance()
                 fragment.show(childFragmentManager, preference.key)
