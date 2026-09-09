@@ -14,6 +14,24 @@
     android:paddingBottom="12dp"
     android:gravity="center_vertical">
 
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/podcastThumbnailContainer"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginEnd="12dp"
+        android:visibility="gone"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="0dp"
+        tools:visibility="visible">
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/podcastThumbnail"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            tools:src="@tools:sample/avatars" />
+    </com.google.android.material.card.MaterialCardView>
+
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"

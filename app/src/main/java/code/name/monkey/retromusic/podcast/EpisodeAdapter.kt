@@ -30,7 +30,10 @@ import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.ItemEpisodeBinding
 import code.name.monkey.retromusic.db.EpisodeDownloadState
 import code.name.monkey.retromusic.db.EpisodeEntity
+import code.name.monkey.retromusic.db.PodcastEntity
 import code.name.monkey.retromusic.extensions.accentColor
+import com.bumptech.glide.Glide
+import com.bumptech.glide.request.RequestOptions
 import java.text.DateFormat
 import java.util.Date
 
@@ -39,7 +42,12 @@ class EpisodeAdapter(
     private val onDownload: (EpisodeEntity) -> Unit,
     private val onDeleteDownload: (EpisodeEntity) -> Unit,
     private val onTogglePlayed: (EpisodeEntity, Boolean) -> Unit,
-    private val onToggleFavorited: (EpisodeEntity, Boolean) -> Unit = { _, _ -> }
+    private val onToggleFavorited: (EpisodeEntity, Boolean) -> Unit = { _, _ -> },
+    /** When non-null, a small podcast-cover thumbnail is shown on each row (looked up by
+     * episode.podcastId) -- for cross-podcast lists like the Podcasts Home sections, where it's
+     * not otherwise obvious which show an episode belongs to. Null in single-podcast contexts
+     * (PodcastDetailsFragment) where that's already shown in the screen header. */
+    private val podcastsById: Map<Long, PodcastEntity>? = null
 ) : ListAdapter<EpisodeEntity, EpisodeAdapter.ViewHolder>(DIFF) {
 
     /** episode id -> 0-100, set by PodcastsFragment as PodcastsViewModel.downloadProgress ticks. */
@@ -114,6 +122,16 @@ class EpisodeAdapter(
         }
 
         fun bind(episode: EpisodeEntity) {
+            if (podcastsById != null) {
+                binding.podcastThumbnailContainer.isVisible = true
+                Glide.with(binding.root)
+                    .load(podcastsById[episode.podcastId]?.imageUrl)
+                    .apply(RequestOptions().placeholder(R.drawable.default_audio_art).error(R.drawable.default_audio_art))
+                    .into(binding.podcastThumbnail)
+            } else {
+                binding.podcastThumbnailContainer.isVisible = false
+            }
+
             binding.episodeTitle.text = episode.title
             val date = if (episode.pubDate > 0) {
                 DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(episode.pubDate))

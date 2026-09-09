@@ -102,7 +102,8 @@ class PodcastHomeAdapter(
                     onDownload = onPlayEpisode,
                     onDeleteDownload = onPlayEpisode,
                     onTogglePlayed = { _, _ -> },
-                    onToggleFavorited = onToggleFavorited
+                    onToggleFavorited = onToggleFavorited,
+                    podcastsById = podcastsById
                 ).apply { submitList(episodes) }
             }
         }
