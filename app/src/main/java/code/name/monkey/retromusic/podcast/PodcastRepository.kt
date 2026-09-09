@@ -69,6 +69,9 @@ class PodcastRepository(
 
     suspend fun podcastById(podcastId: Long): PodcastEntity? = podcastDao.podcastById(podcastId)
 
+    /** Live-updating single episode -- backs EpisodeDetailsFragment. */
+    fun episode(episodeId: Long): Flow<EpisodeEntity?> = episodeDao.observeEpisode(episodeId)
+
     suspend fun setEpisodePlayed(episodeId: Long, played: Boolean) = withContext(Dispatchers.IO) {
         episodeDao.updatePlayed(episodeId, played)
     }

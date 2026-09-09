@@ -96,6 +96,16 @@
     </fragment>
 
     <fragment
+        android:id="@+id/episodeDetailsFragment"
+        android:name="code.name.monkey.retromusic.podcast.EpisodeDetailsFragment"
+        android:label="EpisodeDetailsFragment"
+        tools:layout="@layout/fragment_episode_details">
+        <argument
+            android:name="extra_episode_id"
+            app:argType="long" />
+    </fragment>
+
+    <fragment
         android:id="@+id/podcasts_home_fragment"
         android:name="code.name.monkey.retromusic.podcast.PodcastHomeFragment"
         android:label="@string/podcast_tab_home"

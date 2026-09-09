@@ -36,6 +36,9 @@ interface EpisodeDao {
     @Query("SELECT * FROM EpisodeEntity WHERE id = :episodeId LIMIT 1")
     suspend fun episodeById(episodeId: Long): EpisodeEntity?
 
+    @Query("SELECT * FROM EpisodeEntity WHERE id = :episodeId LIMIT 1")
+    fun observeEpisode(episodeId: Long): Flow<EpisodeEntity?>
+
     @Query("SELECT * FROM EpisodeEntity WHERE download_id = :downloadId LIMIT 1")
     suspend fun episodeForDownloadId(downloadId: Long): EpisodeEntity?
 

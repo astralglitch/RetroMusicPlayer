@@ -117,7 +117,12 @@ class PodcastHomeFragment : AbsMainActivityFragment(R.layout.fragment_podcast_ho
         }
     }
 
-    private fun openEpisode(episode: EpisodeEntity) = openPodcast(episode.podcastId)
+    private fun openEpisode(episode: EpisodeEntity) {
+        findNavController().navigate(
+            R.id.episodeDetailsFragment,
+            bundleOf("extra_episode_id" to episode.id)
+        )
+    }
 
     private fun openPodcast(podcastId: Long) {
         findNavController().navigate(
