@@ -5,6 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     app:layout_scrollFlags="scroll|enterAlways"
-    app:navigationIcon="@drawable/ic_search"
+    app:navigationIcon="@drawable/ic_menu"
+    app:navigationContentDescription="@string/action_open_drawer"
     app:popupTheme="?attr/toolbarPopupTheme"
     app:titleCentered="true" />

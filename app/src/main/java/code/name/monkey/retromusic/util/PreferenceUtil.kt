@@ -149,7 +149,10 @@ object PreferenceUtil {
         CategoryInfo(CategoryInfo.Category.Genres, false),
         CategoryInfo(CategoryInfo.Category.Folder, false),
         CategoryInfo(CategoryInfo.Category.Search, false),
-        CategoryInfo(CategoryInfo.Category.Podcasts, true)
+        // Podcasts now lives under its own world (see MainActivity's drawer / podcasts-world
+        // bottom nav), not as a peer Music tab -- stays in the enum for existing installs'
+        // saved preferences, but starts (and stays) hidden from the Music tab list.
+        CategoryInfo(CategoryInfo.Category.Podcasts, false)
     )
 
     var libraryCategory: List<CategoryInfo>
@@ -175,7 +178,13 @@ object PreferenceUtil {
             val missing = CategoryInfo.Category.values()
                 .filter { it !in savedCategories }
                 .map { CategoryInfo(it, visible = false) }
-            return if (missing.isEmpty()) saved else saved + missing
+            val combined = if (missing.isEmpty()) saved else saved + missing
+            // Podcasts moved out of the Music tab list entirely (it's a drawer "world" now, see
+            // MainActivity) -- force it hidden even for installs that saved it visible=true back
+            // when it was still a peer Music tab.
+            return combined.map {
+                if (it.category == CategoryInfo.Category.Podcasts) it.copy(visible = false) else it
+            }
         }
         set(value) {
             val collectionType = object : TypeToken<List<CategoryInfo?>?>() {}.type

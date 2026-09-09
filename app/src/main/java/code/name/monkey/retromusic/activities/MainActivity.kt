@@ -18,6 +18,9 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import androidx.activity.addCallback
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.contains
 import androidx.navigation.ui.setupWithNavController
@@ -52,8 +55,33 @@ class MainActivity : AbsCastActivity() {
         AppRater.appLaunched(this)
 
         setupNavigationController()
+        setupWorldDrawer()
 
         WhatsNewFragment.showChangeLog(this)
+    }
+
+    /** The "world switcher" drawer -- for now just Music vs. Podcasts, reusing the existing
+     * bottom-nav tabs for Music and the existing podcasts_fragment destination as-is. Only
+     * openable from the top-level tabs (see the destination-changed listener below); locked
+     * closed elsewhere so it doesn't fight detail screens' back-arrow/swipe-back gestures. */
+    private fun setupWorldDrawer() {
+        worldDrawer.setNavigationItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_world_music -> findNavController(R.id.fragment_container).navigate(R.id.action_home)
+                R.id.nav_world_podcasts -> findNavController(R.id.fragment_container).navigate(R.id.podcasts_fragment)
+            }
+            drawerLayout.closeDrawer(GravityCompat.START)
+            true
+        }
+        onBackPressedDispatcher.addCallback(this) {
+            if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                drawerLayout.closeDrawer(GravityCompat.START)
+            } else {
+                isEnabled = false
+                onBackPressedDispatcher.onBackPressed()
+                isEnabled = true
+            }
+        }
     }
 
     private fun setupNavigationController() {
@@ -92,27 +120,60 @@ class MainActivity : AbsCastActivity() {
                 currentFragment(R.id.fragment_container)?.enterTransition = null
             }
             when (destination.id) {
-                R.id.action_home, R.id.action_song, R.id.action_album, R.id.action_artist, R.id.action_folder, R.id.action_playlist, R.id.action_genre, R.id.action_search, R.id.podcasts_fragment -> {
+                R.id.action_home, R.id.action_song, R.id.action_album, R.id.action_artist, R.id.action_folder, R.id.action_playlist, R.id.action_genre, R.id.action_search -> {
                     // Save the last tab
                     if (PreferenceUtil.rememberLastTab) {
                         saveTab(destination.id)
                     }
                     // Show Bottom Navigation Bar
                     setBottomNavVisibility(visible = true, animate = true)
+                    // Only the top-level tabs get the world-switcher drawer -- detail screens
+                    // keep their back-arrow/swipe-back untouched.
+                    drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
+                    worldDrawer.setCheckedItem(R.id.nav_world_music)
+                    // The bottom nav may still be showing the Podcasts world's tabs (e.g.
+                    // returning here via the drawer) -- rebuild it from the Music tab prefs.
+                    updateTabs()
+                }
+                R.id.podcasts_fragment -> {
+                    if (PreferenceUtil.rememberLastTab) {
+                        saveTab(destination.id)
+                    }
+                    setBottomNavVisibility(visible = true, animate = true)
+                    drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
+                    worldDrawer.setCheckedItem(R.id.nav_world_podcasts)
+                    showPodcastsWorldTabs()
                 }
                 R.id.playing_queue_fragment -> {
                     setBottomNavVisibility(visible = false, hideBottomSheet = true)
+                    drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
                 }
-                else -> setBottomNavVisibility(
-                    visible = false,
-                    animate = true
-                ) // Hide Bottom Navigation Bar
+                else -> {
+                    setBottomNavVisibility(
+                        visible = false,
+                        animate = true
+                    ) // Hide Bottom Navigation Bar
+                    drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
+                }
             }
         }
     }
 
+    /** The Podcasts world's own bottom-nav tabs -- just "Subscriptions" (the old Podcasts Music
+     * tab, moved here and renamed) for now; Downloads/Queue etc. are follow-up work per the
+     * podcast nav redesign notes. */
+    private fun showPodcastsWorldTabs() {
+        navigationView.menu.clear()
+        navigationView.menu.add(0, R.id.podcasts_fragment, 0, R.string.podcast_subscriptions_tab)
+            .setIcon(R.drawable.ic_mic)
+    }
+
     private fun saveTab(id: Int) {
-        if (PreferenceUtil.libraryCategory.firstOrNull { it.category.id == id }?.visible == true) {
+        // Podcasts is a drawer "world" now, not a Music libraryCategory tab, so it's never
+        // "visible" in that list -- but it's still a legitimate last-tab destination to restore.
+        val isMusicTabVisible =
+            PreferenceUtil.libraryCategory.firstOrNull { it.category.id == id }?.visible == true
+        if (isMusicTabVisible || id == R.id.podcasts_fragment) {
             PreferenceUtil.lastTab = id
         }
     }

@@ -19,7 +19,8 @@
         android:layout_width="match_parent"
         android:layout_height="?actionBarSize"
         app:layout_collapseMode="pin"
-        app:navigationIcon="@drawable/ic_search"
+        app:navigationIcon="@drawable/ic_menu"
+        app:navigationContentDescription="@string/action_open_drawer"
         app:titleTextAppearance="@style/ToolbarTextAppearanceNormal"
         tools:title="@string/songs" />
 </com.google.android.material.appbar.CollapsingToolbarLayout>

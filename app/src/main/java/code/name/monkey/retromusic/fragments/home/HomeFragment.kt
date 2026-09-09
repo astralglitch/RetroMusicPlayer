@@ -20,6 +20,7 @@ import android.view.MenuItem.SHOW_AS_ACTION_IF_ROOM
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.os.bundleOf
 import androidx.core.text.parseAsHtml
+import androidx.core.view.GravityCompat
 import androidx.core.view.doOnLayout
 import androidx.core.view.doOnPreDraw
 import androidx.core.view.isVisible
@@ -162,7 +163,7 @@ class HomeFragment :
 
     private fun setupTitle() {
         binding.toolbar.setNavigationOnClickListener {
-            findNavController().navigate(R.id.action_search, null, navOptions)
+            mainActivity.drawerLayout.openDrawer(GravityCompat.START)
         }
         val hexColor = String.format("#%06X", 0xFFFFFF and accentColor())
         val appName = "Retro <font color=$hexColor>Music</font>".parseAsHtml()
@@ -286,6 +287,12 @@ class HomeFragment :
 
     override fun onMenuItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
+            R.id.action_search_toolbar -> findNavController().navigate(
+                R.id.action_search,
+                null,
+                navOptions
+            )
+
             R.id.action_settings -> findNavController().navigate(
                 R.id.settings_fragment,
                 null,

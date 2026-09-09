@@ -68,7 +68,7 @@ class PodcastsFragment :
     }
 
     override val titleRes: Int
-        get() = R.string.podcasts
+        get() = R.string.podcast_subscriptions_tab
 
     override val emptyMessage: Int
         get() = R.string.empty

@@ -18,6 +18,7 @@ import android.os.Bundle
 import android.view.*
 import androidx.annotation.StringRes
 import androidx.appcompat.widget.Toolbar
+import androidx.core.view.GravityCompat
 import androidx.core.view.doOnPreDraw
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
@@ -100,11 +101,7 @@ abstract class AbsRecyclerViewFragment<A : RecyclerView.Adapter<*>, LM : Recycle
 
     private fun setupToolbar() {
         toolbar.setNavigationOnClickListener {
-            findNavController().navigate(
-                R.id.action_search,
-                null,
-                navOptions
-            )
+            mainActivity.drawerLayout.openDrawer(GravityCompat.START)
         }
         val appName = resources.getString(titleRes)
         binding.appBarLayout.title = appName
@@ -198,6 +195,11 @@ abstract class AbsRecyclerViewFragment<A : RecyclerView.Adapter<*>, LM : Recycle
 
     override fun onMenuItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
+            R.id.action_search_toolbar -> findNavController().navigate(
+                R.id.action_search,
+                null,
+                navOptions
+            )
             R.id.action_settings -> findNavController().navigate(
                 R.id.settings_fragment,
                 null,

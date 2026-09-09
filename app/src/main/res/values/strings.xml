@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <resources>
     <string name="podcasts">Podcasts</string>
+    <string name="action_open_drawer">Open navigation drawer</string>
+    <string name="nav_world_music">Music</string>
+    <string name="podcast_subscriptions_tab">Subscriptions</string>
     <string name="podcast_feed_url_hint">Podcast RSS feed URL</string>
     <string name="podcast_subscribe">Subscribe</string>
     <string name="podcast_download">Download episode</string>

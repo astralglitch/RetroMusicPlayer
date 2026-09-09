@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_world_music"
+            android:icon="@drawable/ic_audiotrack"
+            android:title="@string/nav_world_music"
+            android:checked="true" />
+        <item
+            android:id="@+id/nav_world_podcasts"
+            android:icon="@drawable/ic_mic"
+            android:title="@string/podcasts" />
+    </group>
+
+</menu>

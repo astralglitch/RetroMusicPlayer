@@ -400,6 +400,10 @@ abstract class AbsSlidingMusicPanelActivity : AbsMusicServiceActivity(),
 
     val slidingPanel get() = binding.slidingPanel
 
+    val drawerLayout get() = binding.drawerLayout
+
+    val worldDrawer get() = binding.worldDrawer
+
     val isBottomNavVisible get() = navigationView.isVisible && navigationView is BottomNavigationView
 
     override fun onServiceConnected() {
