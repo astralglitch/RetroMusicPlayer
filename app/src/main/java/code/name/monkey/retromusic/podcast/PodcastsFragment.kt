@@ -117,7 +117,9 @@ class PodcastsFragment :
 
     override fun createAdapter(): PodcastAdapter {
         val dataSet = if (adapter == null) emptyList() else adapter!!.dataSet
-        return PodcastAdapter(requireActivity(), dataSet, itemLayoutRes(), this)
+        return PodcastAdapter(requireActivity(), dataSet, itemLayoutRes(), this) { podcast, favorited ->
+            viewModel.setFavorited(podcast, favorited)
+        }
     }
 
     override fun loadGridSize(): Int = PreferenceUtil.podcastGridSize

@@ -37,4 +37,10 @@ interface PodcastDao {
 
     @Query("SELECT * FROM PodcastEntity WHERE id = :podcastId LIMIT 1")
     suspend fun podcastById(podcastId: Long): PodcastEntity?
+
+    @Query("SELECT * FROM PodcastEntity WHERE favorited = 1 ORDER BY title ASC")
+    fun favoritedPodcasts(): Flow<List<PodcastEntity>>
+
+    @Query("UPDATE PodcastEntity SET favorited = :favorited WHERE id = :podcastId")
+    suspend fun updateFavorited(podcastId: Long, favorited: Boolean)
 }

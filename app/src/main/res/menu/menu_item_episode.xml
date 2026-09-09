@@ -5,6 +5,9 @@
         android:id="@+id/action_episode_toggle_played"
         android:title="@string/podcast_mark_as_played" />
     <item
+        android:id="@+id/action_episode_toggle_favorited"
+        android:title="@string/podcast_mark_as_favorite" />
+    <item
         android:id="@+id/action_episode_delete_download"
         android:title="@string/podcast_delete_download" />
 

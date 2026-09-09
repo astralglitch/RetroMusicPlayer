@@ -46,4 +46,10 @@ class PodcastsViewModel(
     fun consumeSubscribeError() {
         _subscribeError.value = null
     }
+
+    fun setFavorited(podcast: PodcastEntity, favorited: Boolean) {
+        viewModelScope.launch {
+            repository.setPodcastFavorited(podcast.id, favorited)
+        }
+    }
 }

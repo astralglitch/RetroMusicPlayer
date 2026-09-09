@@ -63,3 +63,14 @@ val MIGRATION_26_27 = object : Migration(26, 27) {
         )
     }
 }
+
+val MIGRATION_27_28 = object : Migration(27, 28) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            "ALTER TABLE `EpisodeEntity` ADD COLUMN `favorited` INTEGER NOT NULL DEFAULT 0"
+        )
+        database.execSQL(
+            "ALTER TABLE `PodcastEntity` ADD COLUMN `favorited` INTEGER NOT NULL DEFAULT 0"
+        )
+    }
+}

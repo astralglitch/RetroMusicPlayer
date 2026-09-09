@@ -17,17 +17,27 @@ package code.name.monkey.retromusic.podcast
 import androidx.annotation.IntDef
 import androidx.annotation.StringRes
 
-const val PODCAST_CONTINUE_LISTENING = 0
-const val PODCAST_NEW_EPISODES = 1
-const val PODCAST_YOUR_PODCASTS = 2
+const val PODCAST_SUGGESTIONS = 0
+const val PODCAST_TOP_SUBSCRIPTIONS = 1
+const val PODCAST_FAVORITES = 2
+const val PODCAST_INBOX = 3
+const val PODCAST_CONTINUE_LISTENING = 4
 
-@IntDef(PODCAST_CONTINUE_LISTENING, PODCAST_NEW_EPISODES, PODCAST_YOUR_PODCASTS)
+@IntDef(
+    PODCAST_SUGGESTIONS,
+    PODCAST_TOP_SUBSCRIPTIONS,
+    PODCAST_FAVORITES,
+    PODCAST_INBOX,
+    PODCAST_CONTINUE_LISTENING
+)
 @Retention(AnnotationRetention.SOURCE)
 annotation class PodcastHomeSection
 
 /** A Podcasts-world Home section, mirroring [code.name.monkey.retromusic.model.Home] for the
- * Music world -- [items] is either a list of EpisodeEntity (episode sections) or PodcastEntity
- * (the podcasts section). */
+ * Music world -- [items] is a list of EpisodeEntity for every section except
+ * [PODCAST_TOP_SUBSCRIPTIONS], which holds PodcastEntity. Sections are either a horizontal
+ * scrolling strip (Suggestions, Top Subscriptions) or a short vertical list capped at 3 items
+ * (Favorites, Inbox, Continue Listening) -- see PodcastHomeAdapter. */
 data class PodcastHome(
     val items: List<Any>,
     @PodcastHomeSection

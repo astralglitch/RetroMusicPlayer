@@ -46,6 +46,27 @@ class PodcastRepository(
     fun newEpisodes(limit: Int = 12): Flow<List<EpisodeEntity>> =
         episodeDao.newEpisodes(limit)
 
+    /** Starred episodes, newest first -- backs the Podcasts-world Home "Favorites" section. */
+    fun favoritedEpisodes(limit: Int = 12): Flow<List<EpisodeEntity>> =
+        episodeDao.favoritedEpisodes(limit)
+
+    /** Starred subscriptions -- kept for parity with episode favorites; not surfaced as its own
+     * Home section yet. */
+    fun favoritedPodcasts(): Flow<List<PodcastEntity>> = podcastDao.favoritedPodcasts()
+
+    /** A random pick of not-yet-played episodes across all subscriptions -- backs the
+     * Podcasts-world Home "Suggestions" section. */
+    fun randomUnplayedEpisodes(limit: Int = 10): Flow<List<EpisodeEntity>> =
+        episodeDao.randomUnplayedEpisodes(limit)
+
+    suspend fun setEpisodeFavorited(episodeId: Long, favorited: Boolean) = withContext(Dispatchers.IO) {
+        episodeDao.updateFavorited(episodeId, favorited)
+    }
+
+    suspend fun setPodcastFavorited(podcastId: Long, favorited: Boolean) = withContext(Dispatchers.IO) {
+        podcastDao.updateFavorited(podcastId, favorited)
+    }
+
     suspend fun podcastById(podcastId: Long): PodcastEntity? = podcastDao.podcastById(podcastId)
 
     suspend fun setEpisodePlayed(episodeId: Long, played: Boolean) = withContext(Dispatchers.IO) {
@@ -96,7 +117,8 @@ class PodcastRepository(
                     title = feed.title.ifBlank { podcast.title },
                     imageUrl = feed.imageUrl ?: podcast.imageUrl,
                     description = feed.description ?: podcast.description,
-                    lastFetched = System.currentTimeMillis()
+                    lastFetched = System.currentTimeMillis(),
+                    favorited = podcast.favorited
                 )
             )
             Unit
@@ -129,7 +151,9 @@ class PodcastRepository(
                 localFilePath = existing?.localFilePath,
                 downloadState = existing?.downloadState ?: EpisodeDownloadState.NOT_DOWNLOADED,
                 downloadId = existing?.downloadId,
-                playbackPositionMs = existing?.playbackPositionMs ?: 0
+                playbackPositionMs = existing?.playbackPositionMs ?: 0,
+                played = existing?.played ?: false,
+                favorited = existing?.favorited ?: false
             )
         }
         episodeDao.upsertEpisodes(entities)

@@ -82,7 +82,8 @@ class PodcastDetailsFragment : AbsMainActivityFragment(R.layout.fragment_podcast
             onPlay = { playEpisode(it) },
             onDownload = { viewModel.download(it) },
             onDeleteDownload = { viewModel.deleteDownload(it) },
-            onTogglePlayed = { episode, played -> viewModel.setPlayed(episode, played) }
+            onTogglePlayed = { episode, played -> viewModel.setPlayed(episode, played) },
+            onToggleFavorited = { episode, favorited -> viewModel.setFavorited(episode, favorited) }
         )
         binding.episodesRecyclerView.apply {
             layoutManager = LinearLayoutManager(requireContext())

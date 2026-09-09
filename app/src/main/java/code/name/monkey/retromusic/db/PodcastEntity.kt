@@ -36,5 +36,8 @@ data class PodcastEntity(
     val description: String? = null,
 
     @ColumnInfo(name = "last_fetched")
-    val lastFetched: Long = 0
+    val lastFetched: Long = 0,
+
+    /** Starred subscription -- separate from favorited episodes (EpisodeEntity.favorited). */
+    val favorited: Boolean = false
 )

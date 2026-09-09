@@ -94,6 +94,12 @@ class PodcastDetailsViewModel(
         }
     }
 
+    fun setFavorited(episode: EpisodeEntity, favorited: Boolean) {
+        viewModelScope.launch {
+            repository.setEpisodeFavorited(episode.id, favorited)
+        }
+    }
+
     fun unsubscribe(onComplete: () -> Unit) {
         val podcast = _podcast.value ?: return
         viewModelScope.launch {

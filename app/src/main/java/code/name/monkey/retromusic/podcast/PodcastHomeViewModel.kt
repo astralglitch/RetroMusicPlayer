@@ -17,34 +17,59 @@ package code.name.monkey.retromusic.podcast
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
+import androidx.lifecycle.viewModelScope
 import code.name.monkey.retromusic.R
+import code.name.monkey.retromusic.db.EpisodeEntity
+import code.name.monkey.retromusic.db.PodcastEntity
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
+
+/** A short vertical-list section shows at most this many items -- "See all" opens the full tab. */
+private const val LIST_SECTION_LIMIT = 3
 
 /**
  * Backs the Podcasts-world Home tab (PodcastHomeFragment) -- assembles the same kind of
  * "different sections" list the Music world's LibraryViewModel.getHome() builds, just over
- * podcast concepts (in-progress episodes, new episodes, subscribed shows) instead of
+ * podcast concepts (suggested/in-progress/favorited/new episodes, subscribed shows) instead of
  * albums/artists/playlists. Empty sections are dropped, same as Repository.homeSections().
  */
 class PodcastHomeViewModel(
-    repository: PodcastRepository
+    private val repository: PodcastRepository
 ) : ViewModel() {
 
+    /** All subscriptions -- also used by PodcastHomeAdapter to look up cover art for the
+     * Suggestions section's episodes, which don't carry their own artwork. */
+    val podcasts: LiveData<List<PodcastEntity>> = repository.podcasts().asLiveData()
+
     val homeSections: LiveData<List<PodcastHome>> = combine(
-        repository.continueListening(),
-        repository.newEpisodes(),
-        repository.podcasts()
-    ) { continueListening, newEpisodes, podcasts ->
+        repository.randomUnplayedEpisodes(10),
+        repository.podcasts(),
+        repository.favoritedEpisodes(LIST_SECTION_LIMIT),
+        repository.newEpisodes(LIST_SECTION_LIMIT),
+        repository.continueListening(LIST_SECTION_LIMIT)
+    ) { suggestions, podcasts, favorites, inbox, continueListening ->
         buildList {
+            if (suggestions.isNotEmpty()) {
+                add(PodcastHome(suggestions, PODCAST_SUGGESTIONS, R.string.podcast_home_suggestions))
+            }
+            if (podcasts.isNotEmpty()) {
+                add(PodcastHome(podcasts, PODCAST_TOP_SUBSCRIPTIONS, R.string.podcast_home_top_subscriptions))
+            }
+            if (favorites.isNotEmpty()) {
+                add(PodcastHome(favorites, PODCAST_FAVORITES, R.string.podcast_home_favorites))
+            }
+            if (inbox.isNotEmpty()) {
+                add(PodcastHome(inbox, PODCAST_INBOX, R.string.podcast_home_inbox))
+            }
             if (continueListening.isNotEmpty()) {
                 add(PodcastHome(continueListening, PODCAST_CONTINUE_LISTENING, R.string.podcast_home_continue_listening))
             }
-            if (newEpisodes.isNotEmpty()) {
-                add(PodcastHome(newEpisodes, PODCAST_NEW_EPISODES, R.string.podcast_home_new_episodes))
-            }
-            if (podcasts.isNotEmpty()) {
-                add(PodcastHome(podcasts, PODCAST_YOUR_PODCASTS, R.string.podcast_home_your_podcasts))
-            }
         }
     }.asLiveData()
+
+    fun setEpisodeFavorited(episode: EpisodeEntity, favorited: Boolean) {
+        viewModelScope.launch {
+            repository.setEpisodeFavorited(episode.id, favorited)
+        }
+    }
 }

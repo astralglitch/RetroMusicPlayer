@@ -38,7 +38,8 @@ class EpisodeAdapter(
     private val onPlay: (EpisodeEntity) -> Unit,
     private val onDownload: (EpisodeEntity) -> Unit,
     private val onDeleteDownload: (EpisodeEntity) -> Unit,
-    private val onTogglePlayed: (EpisodeEntity, Boolean) -> Unit
+    private val onTogglePlayed: (EpisodeEntity, Boolean) -> Unit,
+    private val onToggleFavorited: (EpisodeEntity, Boolean) -> Unit = { _, _ -> }
 ) : ListAdapter<EpisodeEntity, EpisodeAdapter.ViewHolder>(DIFF) {
 
     /** episode id -> 0-100, set by PodcastsFragment as PodcastsViewModel.downloadProgress ticks. */
@@ -95,11 +96,15 @@ class EpisodeAdapter(
             popupMenu.menu.findItem(R.id.action_episode_toggle_played).setTitle(
                 if (episode.played) R.string.podcast_mark_as_unplayed else R.string.podcast_mark_as_played
             )
+            popupMenu.menu.findItem(R.id.action_episode_toggle_favorited).setTitle(
+                if (episode.favorited) R.string.podcast_unmark_as_favorite else R.string.podcast_mark_as_favorite
+            )
             popupMenu.menu.findItem(R.id.action_episode_delete_download).isVisible =
                 episode.downloadState == EpisodeDownloadState.DOWNLOADED
             popupMenu.setOnMenuItemClickListener { item: MenuItem ->
                 when (item.itemId) {
                     R.id.action_episode_toggle_played -> onTogglePlayed(episode, !episode.played)
+                    R.id.action_episode_toggle_favorited -> onToggleFavorited(episode, !episode.favorited)
                     R.id.action_episode_delete_download -> onDeleteDownload(episode)
                     else -> return@setOnMenuItemClickListener false
                 }

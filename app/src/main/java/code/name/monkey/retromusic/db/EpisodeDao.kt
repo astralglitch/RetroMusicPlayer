@@ -56,4 +56,15 @@ interface EpisodeDao {
 
     @Query("SELECT * FROM EpisodeEntity WHERE playback_position_ms = 0 AND played = 0 ORDER BY pub_date DESC LIMIT :limit")
     fun newEpisodes(limit: Int): Flow<List<EpisodeEntity>>
+
+    @Query("SELECT * FROM EpisodeEntity WHERE favorited = 1 ORDER BY pub_date DESC LIMIT :limit")
+    fun favoritedEpisodes(limit: Int): Flow<List<EpisodeEntity>>
+
+    /** A fresh random pick of not-yet-played episodes every time the underlying table changes --
+     * backs the Podcasts-world Home "Suggestions" section. */
+    @Query("SELECT * FROM EpisodeEntity WHERE played = 0 ORDER BY RANDOM() LIMIT :limit")
+    fun randomUnplayedEpisodes(limit: Int): Flow<List<EpisodeEntity>>
+
+    @Query("UPDATE EpisodeEntity SET favorited = :favorited WHERE id = :episodeId")
+    suspend fun updateFavorited(episodeId: Long, favorited: Boolean)
 }

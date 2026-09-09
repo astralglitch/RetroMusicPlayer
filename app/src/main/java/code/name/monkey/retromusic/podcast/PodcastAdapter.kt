@@ -19,6 +19,7 @@ import android.content.res.Resources
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.PopupMenu
 import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.RecyclerView
@@ -39,7 +40,10 @@ class PodcastAdapter(
     private val activity: FragmentActivity,
     var dataSet: List<PodcastEntity>,
     var itemLayoutRes: Int,
-    private val listener: IPodcastClickListener
+    private val listener: IPodcastClickListener,
+    /** Long-press to favorite/unfavorite a subscription -- null (the default) disables the
+     * long-press menu, e.g. for the Podcasts Home "Top Subscriptions" strip. */
+    private val onToggleFavorited: ((PodcastEntity, Boolean) -> Unit)? = null
 ) : RecyclerView.Adapter<PodcastAdapter.ViewHolder>() {
 
     init {
@@ -90,6 +94,24 @@ class PodcastAdapter(
             listener.onPodcast(podcast.id, imageContainer ?: image ?: itemView)
         }
 
-        override fun onLongClick(v: View?): Boolean = false
+        override fun onLongClick(v: View?): Boolean {
+            val toggle = onToggleFavorited ?: return false
+            val podcast = dataSet[layoutPosition]
+            val anchor = v ?: itemView
+            PopupMenu(anchor.context, anchor).apply {
+                menu.add(
+                    if (podcast.favorited) {
+                        R.string.podcast_unmark_as_favorite
+                    } else {
+                        R.string.podcast_mark_as_favorite
+                    }
+                )
+                setOnMenuItemClickListener {
+                    toggle(podcast, !podcast.favorited)
+                    true
+                }
+            }.show()
+            return true
+        }
     }
 }

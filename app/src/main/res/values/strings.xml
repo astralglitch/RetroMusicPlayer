@@ -41,9 +41,13 @@
     <string name="podcast_mark_as_played">Mark as played</string>
     <string name="podcast_mark_as_unplayed">Mark as unplayed</string>
     <string name="podcast_home_continue_listening">Continue Listening</string>
-    <string name="podcast_home_new_episodes">New Episodes</string>
-    <string name="podcast_home_your_podcasts">Your Podcasts</string>
+    <string name="podcast_home_inbox">See What\'s New</string>
+    <string name="podcast_home_top_subscriptions">Top Subscriptions</string>
+    <string name="podcast_home_suggestions">Suggestions</string>
+    <string name="podcast_home_favorites">Favorites</string>
     <string name="podcast_home_empty">Subscribe to a podcast to see it here</string>
+    <string name="podcast_mark_as_favorite">Add to favorites</string>
+    <string name="podcast_unmark_as_favorite">Remove from favorites</string>
     <string name="about_album_label">About %s</string>
     <string name="about_settings_summary">Team, social links</string>
     <string name="accent_color">Accent color</string>

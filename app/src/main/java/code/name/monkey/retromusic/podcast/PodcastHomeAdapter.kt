@@ -18,6 +18,7 @@ import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.recyclerview.widget.GridLayoutManager
@@ -27,23 +28,26 @@ import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.db.EpisodeEntity
 import code.name.monkey.retromusic.db.PodcastEntity
 import code.name.monkey.retromusic.interfaces.IPodcastClickListener
+import com.bumptech.glide.Glide
+import com.bumptech.glide.request.RequestOptions
 
 /**
  * Drives the Podcasts-world Home tab, mirroring HomeAdapter (Music world) -- one section per
- * [PodcastHome] entry, view type keyed off [PodcastHome.section]. Episode sections (Continue
- * Listening / New Episodes) reuse EpisodeAdapter's full-width rows in a short, non-scrolling
- * vertical list; the podcasts section reuses PodcastAdapter in a horizontal grid, like the
- * Music Home's Recent/Top Albums strips.
+ * [PodcastHome] entry, view type keyed off [PodcastHome.section]. Suggestions and Top
+ * Subscriptions scroll horizontally (cover-art cards); Favorites/Inbox/Continue Listening are
+ * short non-scrolling vertical lists (already capped at 3 items by PodcastHomeViewModel).
  */
 class PodcastHomeAdapter(
     private val activity: AppCompatActivity,
     private val onPlayEpisode: (EpisodeEntity) -> Unit,
-    private val onSeeAllEpisodes: () -> Unit,
+    private val onToggleFavorited: (EpisodeEntity, Boolean) -> Unit,
+    private val onSeeAllEpisodes: (Int) -> Unit,
     private val onPodcast: (Long, View) -> Unit,
     private val onSeeAllPodcasts: () -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private var list = listOf<PodcastHome>()
+    private var podcastsById = emptyMap<Long, PodcastEntity>()
 
     override fun getItemViewType(position: Int): Int = list[position].section
 
@@ -51,7 +55,8 @@ class PodcastHomeAdapter(
         val layout =
             LayoutInflater.from(activity).inflate(R.layout.section_recycler_view, parent, false)
         return when (viewType) {
-            PODCAST_YOUR_PODCASTS -> PodcastSectionViewHolder(layout)
+            PODCAST_TOP_SUBSCRIPTIONS -> PodcastSectionViewHolder(layout)
+            PODCAST_SUGGESTIONS -> SuggestionSectionViewHolder(layout)
             else -> EpisodeSectionViewHolder(layout)
         }
     }
@@ -60,16 +65,18 @@ class PodcastHomeAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val home = list[position]
         when (holder) {
-            is EpisodeSectionViewHolder -> holder.bindView(home, home.items as List<EpisodeEntity>)
+            is SuggestionSectionViewHolder -> holder.bindView(home, home.items as List<EpisodeEntity>)
             is PodcastSectionViewHolder -> holder.bindView(home, home.items as List<PodcastEntity>)
+            is EpisodeSectionViewHolder -> holder.bindView(home, home.items as List<EpisodeEntity>)
         }
     }
 
     override fun getItemCount(): Int = list.size
 
     @SuppressLint("NotifyDataSetChanged")
-    fun swapData(sections: List<PodcastHome>) {
+    fun swapData(sections: List<PodcastHome>, podcastsById: Map<Long, PodcastEntity>) {
         list = sections
+        this.podcastsById = podcastsById
         notifyDataSetChanged()
     }
 
@@ -79,10 +86,11 @@ class PodcastHomeAdapter(
         val clickableArea: ViewGroup = itemView.findViewById(R.id.clickable_area)
     }
 
+    /** A short, non-scrolling vertical list -- Favorites / Inbox / Continue Listening. */
     private inner class EpisodeSectionViewHolder(view: View) : AbsHomeViewItem(view) {
         fun bindView(home: PodcastHome, episodes: List<EpisodeEntity>) {
             title.setText(home.titleRes)
-            clickableArea.setOnClickListener { onSeeAllEpisodes() }
+            clickableArea.setOnClickListener { onSeeAllEpisodes(home.section) }
             recyclerView.apply {
                 layoutManager = LinearLayoutManager(activity)
                 isNestedScrollingEnabled = false
@@ -93,12 +101,14 @@ class PodcastHomeAdapter(
                     onPlay = onPlayEpisode,
                     onDownload = onPlayEpisode,
                     onDeleteDownload = onPlayEpisode,
-                    onTogglePlayed = { _, _ -> }
+                    onTogglePlayed = { _, _ -> },
+                    onToggleFavorited = onToggleFavorited
                 ).apply { submitList(episodes) }
             }
         }
     }
 
+    /** Horizontal strip of subscribed shows -- Top Subscriptions. */
     private inner class PodcastSectionViewHolder(view: View) : AbsHomeViewItem(view) {
         fun bindView(home: PodcastHome, podcasts: List<PodcastEntity>) {
             title.setText(home.titleRes)
@@ -117,6 +127,51 @@ class PodcastHomeAdapter(
                     }
                 )
             }
+        }
+    }
+
+    /** Horizontal strip of randomly suggested episodes, shown with their podcast's cover art
+     * since episodes have none of their own. */
+    private inner class SuggestionSectionViewHolder(view: View) : AbsHomeViewItem(view) {
+        fun bindView(home: PodcastHome, episodes: List<EpisodeEntity>) {
+            title.setText(home.titleRes)
+            clickableArea.setOnClickListener { onSeeAllEpisodes(home.section) }
+            recyclerView.apply {
+                layoutManager = GridLayoutManager(activity, 1, GridLayoutManager.HORIZONTAL, false)
+                isNestedScrollingEnabled = false
+                adapter = EpisodeSuggestionAdapter(episodes, podcastsById, onPlayEpisode)
+            }
+        }
+    }
+
+    private class EpisodeSuggestionAdapter(
+        private val episodes: List<EpisodeEntity>,
+        private val podcastsById: Map<Long, PodcastEntity>,
+        private val onClick: (EpisodeEntity) -> Unit
+    ) : RecyclerView.Adapter<EpisodeSuggestionAdapter.ViewHolder>() {
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val view =
+                LayoutInflater.from(parent.context).inflate(R.layout.item_image, parent, false)
+            return ViewHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            val episode = episodes[position]
+            val podcast = podcastsById[episode.podcastId]
+            holder.title.text = episode.title
+            Glide.with(holder.itemView)
+                .load(podcast?.imageUrl)
+                .apply(RequestOptions().placeholder(R.drawable.default_audio_art).error(R.drawable.default_audio_art))
+                .into(holder.image)
+            holder.itemView.setOnClickListener { onClick(episode) }
+        }
+
+        override fun getItemCount(): Int = episodes.size
+
+        class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            val image: ImageView = itemView.findViewById(R.id.image)
+            val title: AppCompatTextView = itemView.findViewById(R.id.title)
         }
     }
 }

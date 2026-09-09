@@ -69,5 +69,9 @@ data class EpisodeEntity(
     /** Explicit played/unplayed state -- set automatically on natural completion (see
      * EpisodePositionSaver) or manually via the episode long-press menu. Kept separate from
      * playbackPositionMs so "mark as unplayed" doesn't have to also discard progress. */
-    val played: Boolean = false
+    val played: Boolean = false,
+
+    /** Starred from the episode long-press menu -- backs the Podcasts-world Home "Favorites"
+     * section. Separate from [played], same idea as e-mail starring vs. read state. */
+    val favorited: Boolean = false
 )
