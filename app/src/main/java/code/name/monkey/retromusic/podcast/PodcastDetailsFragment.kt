@@ -20,6 +20,7 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
+import androidx.core.os.bundleOf
 import androidx.core.text.parseAsHtml
 import androidx.core.view.isVisible
 import androidx.navigation.fragment.findNavController
@@ -79,7 +80,7 @@ class PodcastDetailsFragment : AbsMainActivityFragment(R.layout.fragment_podcast
         binding.podcastCoverContainer.transitionName = arguments.extraPodcastId.toString()
 
         episodeAdapter = EpisodeAdapter(
-            onPlay = { playEpisode(it) },
+            onPlay = { openEpisodeDetails(it) },
             onDownload = { viewModel.download(it) },
             onDeleteDownload = { viewModel.deleteDownload(it) },
             onTogglePlayed = { episode, played -> viewModel.setPlayed(episode, played) },
@@ -142,6 +143,17 @@ class PodcastDetailsFragment : AbsMainActivityFragment(R.layout.fragment_podcast
             .placeholder(R.drawable.default_audio_art)
             .error(R.drawable.default_audio_art)
             .into(binding.podcastCover)
+    }
+
+    /** Tapping an episode row opens its own subpage (info + Play/Download) rather than jumping
+     * straight into playback -- same reasoning as the Podcasts Home lists (EpisodeDetailsFragment).
+     * Resuming via the dedicated Resume button above is a distinct, explicit action and still
+     * plays directly (see resumePlayback/playEpisode). */
+    private fun openEpisodeDetails(episode: EpisodeEntity) {
+        findNavController().navigate(
+            R.id.episodeDetailsFragment,
+            bundleOf("extra_episode_id" to episode.id)
+        )
     }
 
     private fun playEpisode(episode: EpisodeEntity) {
