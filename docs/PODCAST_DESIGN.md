@@ -73,6 +73,22 @@ same shape as the bottom-nav customization story above.
 - **Status:** noted, not designed in detail yet. Depends on the nav-and-tabs decision
   above being settled first, since "per tab" isn't meaningful until tabs exist.
 
+## Encourage offline listening from the episode subpage
+
+Idea (from a live session, not yet built): on `EpisodeDetailsFragment`, an episode that
+isn't downloaded yet shouldn't show a Play button at all — only Download. Once
+downloaded, Play and Delete both show (today's behavior). The overflow (⋮) menu gets a
+"Stream" item so playing straight from the enclosure URL without downloading is still
+possible, just no longer the default, one-tap path — nudging people toward downloading
+first without removing the option.
+- **Status:** noted, not built (explicitly low priority for now). When picked up:
+  `EpisodeDetailsFragment.showEpisode()` already computes `isDownloaded`/`isDownloading`
+  from `episode.downloadState` — hide `binding.playAction` unless `isDownloaded`, and add
+  a `menu_episode_details.xml` overflow item wired to the existing `play()` method (it
+  already streams via `enclosureUrl` when there's no local file, see
+  `EpisodeEntity.toSong()`), so no new playback logic is needed, just visibility/menu
+  wiring.
+
 ## Build order (current focus)
 
 Per-item `MediaItemType` schema and the player-controls strategy seam are in place

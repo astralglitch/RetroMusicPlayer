@@ -70,4 +70,19 @@ interface EpisodeDao {
 
     @Query("UPDATE EpisodeEntity SET favorited = :favorited WHERE id = :episodeId")
     suspend fun updateFavorited(episodeId: Long, favorited: Boolean)
+
+    @Query("SELECT * FROM EpisodeEntity WHERE download_state = :state ORDER BY pub_date DESC")
+    fun episodesByDownloadState(state: EpisodeDownloadState): Flow<List<EpisodeEntity>>
+
+    @Query("SELECT * FROM EpisodeEntity WHERE played = 1 ORDER BY pub_date DESC")
+    fun playedEpisodes(): Flow<List<EpisodeEntity>>
+
+    @Query("SELECT * FROM EpisodeEntity WHERE favorited = 1 ORDER BY pub_date DESC")
+    fun allFavoritedEpisodes(): Flow<List<EpisodeEntity>>
+
+    @Query("SELECT * FROM EpisodeEntity WHERE playback_position_ms = 0 AND played = 0 ORDER BY pub_date DESC")
+    fun allNewEpisodes(): Flow<List<EpisodeEntity>>
+
+    @Query("SELECT * FROM EpisodeEntity ORDER BY pub_date DESC")
+    fun allEpisodes(): Flow<List<EpisodeEntity>>
 }

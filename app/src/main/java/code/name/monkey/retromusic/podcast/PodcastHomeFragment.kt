@@ -134,6 +134,9 @@ class PodcastHomeFragment : AbsMainActivityFragment(R.layout.fragment_podcast_ho
     private fun openEpisodeSection(@PodcastHomeSection section: Int) {
         val destination = when (section) {
             PODCAST_FAVORITES -> R.id.podcasts_favorites_fragment
+            PODCAST_INBOX -> R.id.podcasts_inbox_fragment
+            // Multi-queue isn't built yet (see docs/PODCAST_DESIGN.md) -- Continue Listening's
+            // "see all" still only has the placeholder Queue tab to land on.
             PODCAST_CONTINUE_LISTENING -> R.id.podcasts_queue_fragment
             else -> R.id.podcasts_episodes_fragment
         }

@@ -26,10 +26,11 @@ import code.name.monkey.retromusic.databinding.FragmentPodcastPlaceholderBinding
 import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
 
 /**
- * Stands in for a Podcasts-world bottom-nav tab that doesn't have a real screen yet (Queue,
- * Inbox, Episodes, Downloads, History, Favorites, Statistics) -- see PodcastCategoryInfo.Category
- * and the podcast nav redesign notes. Each such tab is a one-line subclass here rather than a
- * real destination until it's built. Home has since moved to PodcastHomeFragment.
+ * Stands in for a Podcasts-world bottom-nav tab that doesn't have a real screen yet -- currently
+ * just Queue (needs the not-yet-built multi-queue feature, see docs/PODCAST_DESIGN.md) and
+ * Statistics (needs a real listening-stats design). See PodcastCategoryInfo.Category. Home,
+ * Favorites, Downloads, History, Inbox and Episodes have all since moved to real screens
+ * (PodcastHomeFragment / AbsEpisodeListFragment).
  */
 abstract class AbsPodcastPlaceholderFragment(@StringRes private val titleRes: Int) :
     AbsMainActivityFragment(R.layout.fragment_podcast_placeholder) {
@@ -59,9 +60,4 @@ abstract class AbsPodcastPlaceholderFragment(@StringRes private val titleRes: In
 }
 
 class PodcastQueueFragment : AbsPodcastPlaceholderFragment(R.string.podcast_tab_queue)
-class PodcastInboxFragment : AbsPodcastPlaceholderFragment(R.string.podcast_tab_inbox)
-class PodcastEpisodesFragment : AbsPodcastPlaceholderFragment(R.string.podcast_tab_episodes)
-class PodcastDownloadsFragment : AbsPodcastPlaceholderFragment(R.string.podcast_tab_downloads)
-class PodcastHistoryFragment : AbsPodcastPlaceholderFragment(R.string.podcast_tab_history)
-class PodcastFavoritesFragment : AbsPodcastPlaceholderFragment(R.string.podcast_tab_favorites)
 class PodcastStatisticsFragment : AbsPodcastPlaceholderFragment(R.string.podcast_tab_statistics)

@@ -46,6 +46,11 @@
     <string name="podcast_home_suggestions">Suggestions</string>
     <string name="podcast_home_favorites">Favorites</string>
     <string name="podcast_home_empty">Subscribe to a podcast to see it here</string>
+    <string name="podcast_favorites_empty">Episodes you favorite will show up here</string>
+    <string name="podcast_downloads_empty">Downloaded episodes will show up here</string>
+    <string name="podcast_history_empty">Episodes you\'ve played will show up here</string>
+    <string name="podcast_inbox_empty">New episodes from your subscriptions will show up here</string>
+    <string name="podcast_episodes_empty">Subscribe to a podcast to see its episodes here</string>
     <string name="podcast_mark_as_favorite">Add to favorites</string>
     <string name="podcast_unmark_as_favorite">Remove from favorites</string>
     <string name="about_album_label">About %s</string>

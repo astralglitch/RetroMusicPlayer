@@ -59,6 +59,20 @@ class PodcastRepository(
     fun randomUnplayedEpisodes(limit: Int = 10): Flow<List<EpisodeEntity>> =
         episodeDao.randomUnplayedEpisodes(limit)
 
+    /** Full (uncapped) lists backing the Podcasts-world tabs -- Favorites/Inbox/Episodes/
+     * Downloads/History. The Home sections above use the same underlying data but capped to a
+     * handful of items. */
+    fun allFavoritedEpisodes(): Flow<List<EpisodeEntity>> = episodeDao.allFavoritedEpisodes()
+
+    fun allNewEpisodes(): Flow<List<EpisodeEntity>> = episodeDao.allNewEpisodes()
+
+    fun allEpisodes(): Flow<List<EpisodeEntity>> = episodeDao.allEpisodes()
+
+    fun playedEpisodes(): Flow<List<EpisodeEntity>> = episodeDao.playedEpisodes()
+
+    fun downloadedEpisodes(): Flow<List<EpisodeEntity>> =
+        episodeDao.episodesByDownloadState(EpisodeDownloadState.DOWNLOADED)
+
     suspend fun setEpisodeFavorited(episodeId: Long, favorited: Boolean) = withContext(Dispatchers.IO) {
         episodeDao.updateFavorited(episodeId, favorited)
     }
