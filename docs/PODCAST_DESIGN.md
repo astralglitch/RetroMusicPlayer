@@ -43,24 +43,40 @@ Proposed model:
 
 ## Now Playing screen should be type-aware
 
-Right now every playing item — music or podcast episode — shows the same Now Playing
-screen: album art, artist, shuffle/repeat transport controls. For a podcast episode
-this is actively confusing: nothing on screen says which podcast it's from, there's no
-skip ±10/30s, no speed control, and tapping through goes nowhere useful (compare
-AntennaPod's player: podcast name + episode title, tap-through to the show, speed/skip
-controls sized for spoken-word listening).
-
 The `PlayerControlsStrategy` seam (`fragments/player/controls/PlayerControlsStrategy.kt`)
-already exists for exactly this — `PodcastAudioControlsStrategy` is currently a stub
-that contributes nothing. Building this out means: podcast-appropriate transport
-controls (skip ±10/30s, playback speed, tap-through to the podcast), matching
-RetroMusic's existing per-theme visual style rather than a bolted-on separate look.
-Those skip/speed increments should themselves eventually be user-configurable, same as
-everything else here.
-- **Status:** designed (seam exists), controls not built. Bigger job than anything in
-  "Build order" below since it touches the shared Now Playing UI instead of living
-  in the isolated podcast module — treat as its own milestone once the basic loop
-  (below) is solid.
+picks `PodcastAudioControlsStrategy` for a playing episode, which hosts
+`PodcastExtraControlsFragment` (skip ±10/30s, playback speed cycle) in whichever theme
+fragment exposes `AbsPlayerControlsFragment.extraControlsContainerId`. That container
+(`podcastControlsContainer`) is now wired into every themed playback-controls layout
+where it fits: normal, adaptive, blur, card, cardblur, color, fit, flat, full, md3,
+plain, simple, lockscreen, material, peek. Left out on purpose:
+- **tiny** — a bare repeat/shuffle icon strip with no room for anything else.
+- **circle, gradient, classic** — these themes' player fragments
+  (`CirclePlayerFragment`/`GradientPlayerFragment`/`ClassicPlayerFragment`) implement
+  transport controls inline rather than delegating to an `AbsPlayerControlsFragment`
+  subclass, so they don't have a seam to plug into yet; would need their own
+  integration if picked up later.
+
+Tap-through to the podcast now works too: `AbsPlayerFragment.goToAlbum()` and
+`goToArtist()` (the shared functions every theme's title/artist tap calls) check
+`Song.episodeIdOrNull()` and route to `podcastDetailsFragment` instead of
+`albumDetailsFragment`/`artistDetailsFragment` for a podcast episode -- those would
+otherwise navigate using bogus ids (`Song.albumId` is -1, `Song.artistId` is actually
+the podcast's own id, not a MediaStore artist).
+
+Skip/speed increments are still fixed, not user-configurable yet -- that part of the
+original intent remains open.
+- **Status:** built (extras panel, per-theme wiring, tap-through). Configurable skip/
+  speed increments not done.
+
+### Episode artwork (was: known limitation, now fixed)
+
+`Song` gained an `artworkUrl: String?` field (null for a plain scanned track).
+`EpisodeEntity.toSong(podcast)` sets it to `podcast.imageUrl`, and
+`RetroGlideExtension.getSongModel()` returns it directly (a plain URL is a valid Glide
+model) before falling through to the old AudioFileCover/MediaStore paths -- so Now
+Playing, the mini-player, and anywhere else `getSongModel`/`songCoverOptions` is used
+now show the podcast's real cover art instead of nothing.
 
 ## Per-tab swipe actions
 
@@ -104,15 +120,5 @@ Nav and multi-queue are deliberately deferred. Immediate focus is the basics:
    cancel a stuck transfer, see real progress). ✅
 5. Persist and resume playback position per episode. ✅
 
-Basic loop is done. Next real milestones, roughly in order: type-aware Now Playing
-screen (above), then nav/tabs, then multi-queue, then per-tab swipe actions.
-
-### Known limitation: episode artwork
-
-Episodes currently show no cover art (`EpisodeEntity.toSong()` sets `albumId = -1`,
-and the local-file-based Glide fallback is intentionally skipped for network URLs —
-see `AudioFileCoverFetcher.kt` — since it was making a wasted extra network fetch
-competing with the actual episode download for bandwidth). The real fix is wiring
-`PodcastEntity.imageUrl` (already fetched from the feed) into whatever Glide model
-paints the Now Playing / mini-player art, which naturally belongs in the type-aware
-Now Playing work above rather than as a standalone patch.
+Basic loop and the type-aware Now Playing screen (above) are both done. Next real
+milestones, roughly in order: nav/tabs, then multi-queue, then per-tab swipe actions.

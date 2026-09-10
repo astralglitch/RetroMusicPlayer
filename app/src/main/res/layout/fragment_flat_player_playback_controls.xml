@@ -101,7 +101,7 @@
         android:layout_height="wrap_content"
         android:clickable="false"
         app:layout_constrainedWidth="true"
-        app:layout_constraintBottom_toTopOf="@+id/playerMediaControllerContainer"
+        app:layout_constraintBottom_toTopOf="@+id/podcastControlsContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0"
         app:layout_constraintStart_toStartOf="parent"
@@ -131,6 +131,13 @@
     </LinearLayout>
 
 
+    <FrameLayout
+        android:id="@+id/podcastControlsContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toTopOf="@+id/playerMediaControllerContainer"
+        app:layout_constraintTop_toBottomOf="@+id/titleContainer" />
+
     <RelativeLayout
         android:id="@+id/playerMediaControllerContainer"
         android:layout_width="match_parent"
@@ -142,7 +149,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/titleContainer"
+        app:layout_constraintTop_toBottomOf="@+id/podcastControlsContainer"
         tools:ignore="ContentDescription,UnusedAttribute"
         tools:showIn="@layout/fragment_player_playback_controls">
 

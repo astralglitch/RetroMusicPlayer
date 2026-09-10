@@ -58,6 +58,7 @@ import code.name.monkey.retromusic.extensions.getTintedDrawable
 import code.name.monkey.retromusic.extensions.hide
 import code.name.monkey.retromusic.extensions.keepScreenOn
 import code.name.monkey.retromusic.extensions.showToast
+import code.name.monkey.retromusic.podcast.episodeIdOrNull
 import code.name.monkey.retromusic.extensions.whichFragment
 import code.name.monkey.retromusic.fragments.LibraryViewModel
 import code.name.monkey.retromusic.fragments.NowPlayingScreen
@@ -413,6 +414,11 @@ abstract class AbsPlayerFragment(@LayoutRes layout: Int) : AbsMusicServiceFragme
     }
 }
 
+/**
+ * Tap-through from Now Playing's artist/subtitle row. For a podcast episode, `artistId` is
+ * actually the podcast's id (see `EpisodeExtensions.toSong`), not a real MediaStore artist --
+ * goes to that podcast instead of a bogus artist screen.
+ */
 fun goToArtist(activity: Activity) {
     if (activity !is MainActivity) return
     val song = MusicPlayerRemote.currentSong
@@ -428,6 +434,14 @@ fun goToArtist(activity: Activity) {
             collapsePanel()
         }
 
+        if (song.episodeIdOrNull() != null) {
+            findNavController(R.id.fragment_container).navigate(
+                R.id.podcastDetailsFragment,
+                bundleOf("extra_podcast_id" to song.artistId)
+            )
+            return@apply
+        }
+
         findNavController(R.id.fragment_container).navigate(
             R.id.artistDetailsFragment,
             bundleOf(EXTRA_ARTIST_ID to song.artistId)
@@ -435,6 +449,12 @@ fun goToArtist(activity: Activity) {
     }
 }
 
+/**
+ * Tap-through from Now Playing's title/artist row. A podcast episode has no real album (its
+ * [code.name.monkey.retromusic.model.Song.albumId] is -1, see `EpisodeExtensions.toSong`) --
+ * this goes to the episode's podcast instead, using `artistId` which that same conversion sets
+ * to the podcast's id.
+ */
 fun goToAlbum(activity: Activity) {
     if (activity !is MainActivity) return
     val song = MusicPlayerRemote.currentSong
@@ -447,10 +467,17 @@ fun goToAlbum(activity: Activity) {
             collapsePanel()
         }
 
-        findNavController(R.id.fragment_container).navigate(
-            R.id.albumDetailsFragment,
-            bundleOf(EXTRA_ALBUM_ID to song.albumId)
-        )
+        if (song.episodeIdOrNull() != null) {
+            findNavController(R.id.fragment_container).navigate(
+                R.id.podcastDetailsFragment,
+                bundleOf("extra_podcast_id" to song.artistId)
+            )
+        } else {
+            findNavController(R.id.fragment_container).navigate(
+                R.id.albumDetailsFragment,
+                bundleOf(EXTRA_ALBUM_ID to song.albumId)
+            )
+        }
     }
 }
 

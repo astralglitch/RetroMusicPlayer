@@ -58,6 +58,9 @@ class SimplePlaybackControlsFragment :
     override val previousButton: ImageButton
         get() = binding.previousButton
 
+    override val extraControlsContainerId: Int
+        get() = R.id.podcastControlsContainer
+
     override fun onPlayStateChanged() {
         updatePlayPauseDrawableState()
     }

@@ -24,7 +24,7 @@
         android:layout_height="wrap_content"
         android:clickable="false"
         android:orientation="vertical"
-        app:layout_constraintBottom_toTopOf="@+id/progressSlider"
+        app:layout_constraintBottom_toTopOf="@+id/podcastControlsContainer"
         app:layout_constraintEnd_toStartOf="@+id/playerMenu"
         app:layout_constraintStart_toEndOf="@+id/songFavourite"
         app:layout_constraintTop_toTopOf="parent">
@@ -92,6 +92,13 @@
         app:layout_constraintTop_toTopOf="@id/progressSlider"
         tools:text="@tools:sample/date/hhmmss" />
 
+    <FrameLayout
+        android:id="@+id/podcastControlsContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toTopOf="@+id/progressSlider"
+        app:layout_constraintTop_toBottomOf="@+id/titleContainer" />
+
     <com.google.android.material.slider.Slider
         android:id="@+id/progressSlider"
         android:layout_width="0dp"
@@ -102,7 +109,7 @@
         android:progressDrawable="@drawable/color_progress_seek"
         app:layout_constraintEnd_toStartOf="@id/songTotalTime"
         app:layout_constraintStart_toEndOf="@id/songCurrentProgress"
-        app:layout_constraintTop_toBottomOf="@id/titleContainer"
+        app:layout_constraintTop_toBottomOf="@id/podcastControlsContainer"
         tools:ignore="RtlHardcoded,UnusedAttribute"
         tools:progress="20" />
 

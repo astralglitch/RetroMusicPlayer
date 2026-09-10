@@ -61,6 +61,12 @@
         app:layout_constraintTop_toTopOf="@id/progressSlider"
         tools:text="@tools:sample/date/hhmmss" />
 
+    <FrameLayout
+        android:id="@+id/podcastControlsContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@+id/progressSlider" />
+
     <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/playPauseButton"
         android:layout_width="72dp"
@@ -72,7 +78,7 @@
         app:layout_constraintEnd_toStartOf="@+id/nextButton"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/previousButton"
-        app:layout_constraintTop_toBottomOf="@+id/progressSlider"
+        app:layout_constraintTop_toBottomOf="@+id/podcastControlsContainer"
         app:srcCompat="@drawable/ic_pause"
         tools:tint="@color/md_black_1000" />
 

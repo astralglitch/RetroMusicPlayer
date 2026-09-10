@@ -57,6 +57,9 @@ class FlatPlaybackControlsFragment :
     override val previousButton: ImageButton?
         get() = null
 
+    override val extraControlsContainerId: Int
+        get() = R.id.podcastControlsContainer
+
     override val songTotalTime: TextView
         get() = binding.songTotalTime
 

@@ -56,6 +56,9 @@ class CardPlaybackControlsFragment :
     override val previousButton: ImageButton
         get() = binding.mediaButton.previousButton
 
+    override val extraControlsContainerId: Int
+        get() = R.id.podcastControlsContainer
+
     override val songTotalTime: TextView
         get() = binding.songTotalTime
 

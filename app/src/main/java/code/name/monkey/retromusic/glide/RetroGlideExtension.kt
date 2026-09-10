@@ -58,6 +58,10 @@ object RetroGlideExtension {
     }
 
     private fun getSongModel(song: Song, ignoreMediaStore: Boolean): Any {
+        // A podcast episode has no MediaStore album and isn't a local file worth an
+        // AudioFileCover extraction pass (its `data` is often a streaming URL, not a file) --
+        // its podcast's feed-supplied cover art (a plain URL) is a valid Glide model on its own.
+        song.artworkUrl?.let { return it }
         return if (ignoreMediaStore) {
             AudioFileCover(song.data)
         } else {

@@ -31,7 +31,11 @@ open class Song(
     open val artistId: Long,
     open val artistName: String,
     open val composer: String?,
-    open val albumArtist: String?
+    open val albumArtist: String?,
+    /** Feed-supplied cover art URL for a podcast episode (see `EpisodeExtensions.toSong`) --
+     * null for a plain scanned track, which gets its art from MediaStore/embedded tags instead
+     * (see `RetroGlideExtension.getSongModel`). */
+    open val artworkUrl: String? = null
 ) : Parcelable {
 
 
@@ -55,6 +59,7 @@ open class Song(
         if (artistName != other.artistName) return false
         if (composer != other.composer) return false
         if (albumArtist != other.albumArtist) return false
+        if (artworkUrl != other.artworkUrl) return false
 
         return true
     }
@@ -73,6 +78,7 @@ open class Song(
         result = 31 * result + artistName.hashCode()
         result = 31 * result + (composer?.hashCode() ?: 0)
         result = 31 * result + (albumArtist?.hashCode() ?: 0)
+        result = 31 * result + (artworkUrl?.hashCode() ?: 0)
         return result
     }
 

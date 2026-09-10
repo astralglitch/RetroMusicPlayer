@@ -61,6 +61,9 @@ class ColorPlaybackControlsFragment :
     override val previousButton: ImageButton
         get() = binding.previousButton
 
+    override val extraControlsContainerId: Int
+        get() = R.id.podcastControlsContainer
+
     override val songTotalTime: TextView
         get() = binding.songTotalTime
 
