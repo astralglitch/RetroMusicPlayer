@@ -19,12 +19,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.PopupMenu
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import code.name.monkey.retromusic.R
+import code.name.monkey.retromusic.db.EpisodeDownloadState
 import code.name.monkey.retromusic.db.EpisodeEntity
 import code.name.monkey.retromusic.db.PodcastEntity
 import code.name.monkey.retromusic.interfaces.IPodcastClickListener
@@ -41,6 +43,7 @@ class PodcastHomeAdapter(
     private val activity: AppCompatActivity,
     private val onPlayEpisode: (EpisodeEntity) -> Unit,
     private val onToggleFavorited: (EpisodeEntity, Boolean) -> Unit,
+    private val onStreamEpisode: (EpisodeEntity) -> Unit,
     private val onSeeAllEpisodes: (Int) -> Unit,
     private val onPodcast: (Long, View) -> Unit,
     private val onSeeAllPodcasts: () -> Unit
@@ -103,6 +106,7 @@ class PodcastHomeAdapter(
                     onDeleteDownload = onPlayEpisode,
                     onTogglePlayed = { _, _ -> },
                     onToggleFavorited = onToggleFavorited,
+                    onStream = onStreamEpisode,
                     podcastsById = podcastsById
                 ).apply { submitList(episodes) }
             }
@@ -123,7 +127,10 @@ class PodcastHomeAdapter(
                     R.layout.item_image,
                     object : IPodcastClickListener {
                         override fun onPodcast(podcastId: Long, view: View) {
-                            onPodcast(podcastId, view)
+                            // Not `onPodcast(...)` -- that shadows this override and recurses
+                            // into itself (StackOverflowError) instead of calling the outer
+                            // class's callback property.
+                            this@PodcastHomeAdapter.onPodcast(podcastId, view)
                         }
                     }
                 )
@@ -140,7 +147,7 @@ class PodcastHomeAdapter(
             recyclerView.apply {
                 layoutManager = GridLayoutManager(activity, 1, GridLayoutManager.HORIZONTAL, false)
                 isNestedScrollingEnabled = false
-                adapter = EpisodeSuggestionAdapter(episodes, podcastsById, onPlayEpisode)
+                adapter = EpisodeSuggestionAdapter(episodes, podcastsById, onPlayEpisode, onStreamEpisode)
             }
         }
     }
@@ -148,7 +155,8 @@ class PodcastHomeAdapter(
     private class EpisodeSuggestionAdapter(
         private val episodes: List<EpisodeEntity>,
         private val podcastsById: Map<Long, PodcastEntity>,
-        private val onClick: (EpisodeEntity) -> Unit
+        private val onClick: (EpisodeEntity) -> Unit,
+        private val onStream: (EpisodeEntity) -> Unit
     ) : RecyclerView.Adapter<EpisodeSuggestionAdapter.ViewHolder>() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -166,6 +174,17 @@ class PodcastHomeAdapter(
                 .apply(RequestOptions().placeholder(R.drawable.default_audio_art).error(R.drawable.default_audio_art))
                 .into(holder.image)
             holder.itemView.setOnClickListener { onClick(episode) }
+            // Suggestions cards have no other long-press menu (unlike EpisodeAdapter rows) --
+            // this is just the offline-first "Stream episode" escape hatch, same as everywhere
+            // else with an episode list.
+            holder.itemView.setOnLongClickListener {
+                if (episode.downloadState == EpisodeDownloadState.DOWNLOADED) return@setOnLongClickListener false
+                PopupMenu(it.context, it).apply {
+                    menu.add(R.string.podcast_stream_episode)
+                    setOnMenuItemClickListener { onStream(episode); true }
+                }.show()
+                true
+            }
         }
 
         override fun getItemCount(): Int = episodes.size

@@ -32,6 +32,7 @@ import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
 import code.name.monkey.retromusic.glide.RetroGlideExtension
 import code.name.monkey.retromusic.glide.RetroGlideExtension.profileBannerOptions
 import code.name.monkey.retromusic.glide.RetroGlideExtension.userProfileOptions
+import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.util.PreferenceUtil.userName
 import com.bumptech.glide.Glide
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -66,6 +67,7 @@ class PodcastHomeFragment : AbsMainActivityFragment(R.layout.fragment_podcast_ho
             activity = mainActivity,
             onPlayEpisode = ::openEpisode,
             onToggleFavorited = { episode, favorited -> viewModel.setEpisodeFavorited(episode, favorited) },
+            onStreamEpisode = ::streamEpisode,
             onSeeAllEpisodes = ::openEpisodeSection,
             onPodcast = { podcastId, _ -> openPodcast(podcastId) },
             onSeeAllPodcasts = ::openSubscriptions
@@ -122,6 +124,14 @@ class PodcastHomeFragment : AbsMainActivityFragment(R.layout.fragment_podcast_ho
             R.id.episodeDetailsFragment,
             bundleOf("extra_episode_id" to episode.id)
         )
+    }
+
+    /** The long-press "Stream episode" escape hatch -- plays straight from the enclosure URL
+     * without downloading first, bypassing PreferenceUtil.preferStreaming's offline-first
+     * default that otherwise hides Play until an episode is downloaded. */
+    private fun streamEpisode(episode: EpisodeEntity) {
+        val podcast = viewModel.podcasts.value?.firstOrNull { it.id == episode.podcastId } ?: return
+        MusicPlayerRemote.openQueue(listOf(episode.toSong(podcast)), 0, true)
     }
 
     private fun openPodcast(podcastId: Long) {

@@ -30,6 +30,7 @@ import code.name.monkey.retromusic.db.EpisodeEntity
 import code.name.monkey.retromusic.db.PodcastEntity
 import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
+import code.name.monkey.retromusic.util.PreferenceUtil
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -99,6 +100,12 @@ class EpisodeDetailsFragment : AbsMainActivityFragment(R.layout.fragment_episode
 
         val isDownloaded = episode.downloadState == EpisodeDownloadState.DOWNLOADED
         val isDownloading = episode.downloadState == EpisodeDownloadState.DOWNLOADING
+
+        // Offline-first default (PreferenceUtil.preferStreaming): a not-yet-downloaded episode
+        // has no Play button, nudging toward downloading first. Streaming directly is still
+        // reachable via the overflow menu's "Stream episode" (see onMenuItemSelected).
+        binding.playAction.isVisible = isDownloaded || PreferenceUtil.preferStreaming
+
         binding.downloadActionIcon.setImageResource(
             if (isDownloaded) R.drawable.ic_delete else R.drawable.ic_download
         )
@@ -134,9 +141,17 @@ class EpisodeDetailsFragment : AbsMainActivityFragment(R.layout.fragment_episode
         }
     }
 
-    override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {}
+    override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+        menuInflater.inflate(R.menu.menu_episode_details, menu)
+    }
 
-    override fun onMenuItemSelected(menuItem: MenuItem) = false
+    override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+        if (menuItem.itemId == R.id.action_stream_episode) {
+            play()
+            return true
+        }
+        return false
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()

@@ -15,4 +15,17 @@
 
     </code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory>
 
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory
+        android:layout="@layout/preference_category_title"
+        app:title="@string/pref_header_podcast_playback">
+
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESwitchPreference
+            android:defaultValue="false"
+            android:key="prefer_streaming"
+            android:layout="@layout/list_item_view_switch"
+            android:summary="@string/pref_summary_prefer_streaming"
+            android:title="@string/pref_title_prefer_streaming" />
+
+    </code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory>
+
 </androidx.preference.PreferenceScreen>

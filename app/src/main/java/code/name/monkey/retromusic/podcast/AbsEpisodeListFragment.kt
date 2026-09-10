@@ -29,6 +29,7 @@ import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.FragmentEpisodeListBinding
 import code.name.monkey.retromusic.db.EpisodeEntity
 import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
+import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.koin.core.parameter.parametersOf
 
@@ -77,6 +78,7 @@ abstract class AbsEpisodeListFragment(
             onDeleteDownload = { viewModel.deleteDownload(it) },
             onTogglePlayed = { episode, played -> viewModel.setPlayed(episode, played) },
             onToggleFavorited = { episode, favorited -> viewModel.setFavorited(episode, favorited) },
+            onStream = ::streamEpisode,
             podcastsById = podcastsById
         ).apply { submitList(episodes) }
         binding.emptyText.isVisible = episodes.isEmpty()
@@ -87,6 +89,14 @@ abstract class AbsEpisodeListFragment(
             R.id.episodeDetailsFragment,
             bundleOf("extra_episode_id" to episode.id)
         )
+    }
+
+    /** The long-press "Stream episode" escape hatch -- plays straight from the enclosure URL
+     * without downloading first, bypassing PreferenceUtil.preferStreaming's offline-first
+     * default that otherwise hides Play until an episode is downloaded. */
+    private fun streamEpisode(episode: EpisodeEntity) {
+        val podcast = viewModel.podcasts.value?.firstOrNull { it.id == episode.podcastId } ?: return
+        MusicPlayerRemote.openQueue(listOf(episode.toSong(podcast)), 0, true)
     }
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {}

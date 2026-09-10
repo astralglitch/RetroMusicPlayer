@@ -53,6 +53,10 @@
     <string name="podcast_episodes_empty">Subscribe to a podcast to see its episodes here</string>
     <string name="podcast_mark_as_favorite">Add to favorites</string>
     <string name="podcast_unmark_as_favorite">Remove from favorites</string>
+    <string name="podcast_stream_episode">Stream episode</string>
+    <string name="pref_header_podcast_playback">Playback</string>
+    <string name="pref_title_prefer_streaming">Prefer streaming</string>
+    <string name="pref_summary_prefer_streaming">Show Play on an episode\'s page even if it isn\'t downloaded yet. Off by default to encourage downloading for offline listening -- you can still stream from the overflow menu or an episode\'s long-press menu.</string>
     <string name="about_album_label">About %s</string>
     <string name="about_settings_summary">Team, social links</string>
     <string name="accent_color">Accent color</string>

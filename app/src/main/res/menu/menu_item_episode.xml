@@ -8,6 +8,9 @@
         android:id="@+id/action_episode_toggle_favorited"
         android:title="@string/podcast_mark_as_favorite" />
     <item
+        android:id="@+id/action_episode_stream"
+        android:title="@string/podcast_stream_episode" />
+    <item
         android:id="@+id/action_episode_delete_download"
         android:title="@string/podcast_delete_download" />
 

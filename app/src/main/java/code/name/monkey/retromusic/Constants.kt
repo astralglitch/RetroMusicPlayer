@@ -167,3 +167,9 @@ const val PAUSE_HISTORY = "pause_history"
 const val MANAGE_AUDIO_FOCUS = "manage_audio_focus"
 const val SWIPE_DOWN_DISMISS = "swipe_to_dismiss"
 const val ENABLE_SEARCH_PLAYLIST= "enable_search_playlist"
+/** Off by default -- offline-first: a not-yet-downloaded episode hides its Play button on
+ * EpisodeDetailsFragment until downloaded. Turning this on shows Play unconditionally
+ * (streams straight from the enclosure URL), same as before this preference existed. Either
+ * way, streaming a not-downloaded episode is still reachable via the details page's overflow
+ * menu or an episode row's long-press menu. */
+const val PREFER_STREAMING = "prefer_streaming"

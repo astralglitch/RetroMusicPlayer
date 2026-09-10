@@ -80,6 +80,7 @@ import code.name.monkey.retromusic.PLAYBACK_SPEED
 import code.name.monkey.retromusic.PLAYLIST_GRID_SIZE
 import code.name.monkey.retromusic.PLAYLIST_GRID_SIZE_LAND
 import code.name.monkey.retromusic.PLAYLIST_SORT_ORDER
+import code.name.monkey.retromusic.PREFER_STREAMING
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.RECENTLY_PLAYED_CUTOFF
 import code.name.monkey.retromusic.REMEMBER_LAST_TAB
@@ -867,6 +868,12 @@ object PreferenceUtil {
     val pauseHistory: Boolean
         get() = sharedPreferences.getBoolean(
             PAUSE_HISTORY,
+            false
+        )
+
+    val preferStreaming: Boolean
+        get() = sharedPreferences.getBoolean(
+            PREFER_STREAMING,
             false
         )
 
