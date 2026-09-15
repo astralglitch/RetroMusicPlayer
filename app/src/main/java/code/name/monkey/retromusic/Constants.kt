@@ -173,3 +173,6 @@ const val ENABLE_SEARCH_PLAYLIST= "enable_search_playlist"
  * way, streaming a not-downloaded episode is still reachable via the details page's overflow
  * menu or an episode row's long-press menu. */
 const val PREFER_STREAMING = "prefer_streaming"
+/** Which QueueEntity the Podcasts-world Queue tab shows by default -- -1 means "resolve to the
+ * default queue" (see QueueViewModel), so this doesn't need seeding at migration time. */
+const val ACTIVE_QUEUE_ID = "active_queue_id"

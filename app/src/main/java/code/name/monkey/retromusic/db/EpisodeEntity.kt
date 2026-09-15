@@ -54,6 +54,10 @@ data class EpisodeEntity(
 
     val description: String? = null,
 
+    /** User-authored notes, distinct from the feed-supplied [description]. */
+    @ColumnInfo(name = "user_notes")
+    val userNotes: String? = null,
+
     @ColumnInfo(name = "local_file_path")
     val localFilePath: String? = null,
 

@@ -44,6 +44,7 @@ class PodcastHomeAdapter(
     private val onPlayEpisode: (EpisodeEntity) -> Unit,
     private val onToggleFavorited: (EpisodeEntity, Boolean) -> Unit,
     private val onStreamEpisode: (EpisodeEntity) -> Unit,
+    private val onAddToQueue: (EpisodeEntity) -> Unit,
     private val onSeeAllEpisodes: (Int) -> Unit,
     private val onPodcast: (Long, View) -> Unit,
     private val onSeeAllPodcasts: () -> Unit
@@ -107,6 +108,7 @@ class PodcastHomeAdapter(
                     onTogglePlayed = { _, _ -> },
                     onToggleFavorited = onToggleFavorited,
                     onStream = onStreamEpisode,
+                    onAddToQueue = onAddToQueue,
                     podcastsById = podcastsById
                 ).apply { submitList(episodes) }
             }

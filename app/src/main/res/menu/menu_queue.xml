@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/action_switch_queue"
+        android:title="@string/podcast_switch_queue" />
+    <item
+        android:id="@+id/action_new_queue"
+        android:title="@string/podcast_new_queue" />
+    <item
+        android:id="@+id/action_rename_queue"
+        android:title="@string/podcast_rename_queue" />
+    <item
+        android:id="@+id/action_delete_queue"
+        android:title="@string/podcast_delete_queue" />
+
+</menu>

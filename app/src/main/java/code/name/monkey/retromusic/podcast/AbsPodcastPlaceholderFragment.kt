@@ -27,10 +27,9 @@ import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
 
 /**
  * Stands in for a Podcasts-world bottom-nav tab that doesn't have a real screen yet -- currently
- * just Queue (needs the not-yet-built multi-queue feature, see docs/PODCAST_DESIGN.md) and
- * Statistics (needs a real listening-stats design). See PodcastCategoryInfo.Category. Home,
- * Favorites, Downloads, History, Inbox and Episodes have all since moved to real screens
- * (PodcastHomeFragment / AbsEpisodeListFragment).
+ * just Statistics (needs a real listening-stats design). See PodcastCategoryInfo.Category. Home,
+ * Favorites, Downloads, History, Inbox, Episodes and Queue have all since moved to real screens
+ * (PodcastHomeFragment / AbsEpisodeListFragment / QueueFragment).
  */
 abstract class AbsPodcastPlaceholderFragment(@StringRes private val titleRes: Int) :
     AbsMainActivityFragment(R.layout.fragment_podcast_placeholder) {
@@ -59,5 +58,4 @@ abstract class AbsPodcastPlaceholderFragment(@StringRes private val titleRes: In
     }
 }
 
-class PodcastQueueFragment : AbsPodcastPlaceholderFragment(R.string.podcast_tab_queue)
 class PodcastStatisticsFragment : AbsPodcastPlaceholderFragment(R.string.podcast_tab_statistics)

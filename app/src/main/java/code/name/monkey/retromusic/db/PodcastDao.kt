@@ -35,6 +35,9 @@ interface PodcastDao {
     @Query("SELECT * FROM PodcastEntity WHERE feed_url = :feedUrl LIMIT 1")
     suspend fun podcastForFeedUrl(feedUrl: String): PodcastEntity?
 
+    @Query("SELECT * FROM PodcastEntity WHERE folder_uri = :folderUri LIMIT 1")
+    suspend fun podcastForFolderUri(folderUri: String): PodcastEntity?
+
     @Query("SELECT * FROM PodcastEntity WHERE id = :podcastId LIMIT 1")
     suspend fun podcastById(podcastId: Long): PodcastEntity?
 
@@ -43,4 +46,7 @@ interface PodcastDao {
 
     @Query("UPDATE PodcastEntity SET favorited = :favorited WHERE id = :podcastId")
     suspend fun updateFavorited(podcastId: Long, favorited: Boolean)
+
+    @Query("UPDATE PodcastEntity SET target_queue_id = :queueId WHERE id = :podcastId")
+    suspend fun updateTargetQueue(podcastId: Long, queueId: Long?)
 }

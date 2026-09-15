@@ -68,6 +68,7 @@ class PodcastHomeFragment : AbsMainActivityFragment(R.layout.fragment_podcast_ho
             onPlayEpisode = ::openEpisode,
             onToggleFavorited = { episode, favorited -> viewModel.setEpisodeFavorited(episode, favorited) },
             onStreamEpisode = ::streamEpisode,
+            onAddToQueue = { viewModel.addToActiveQueue(it) },
             onSeeAllEpisodes = ::openEpisodeSection,
             onPodcast = { podcastId, _ -> openPodcast(podcastId) },
             onSeeAllPodcasts = ::openSubscriptions
@@ -145,8 +146,8 @@ class PodcastHomeFragment : AbsMainActivityFragment(R.layout.fragment_podcast_ho
         val destination = when (section) {
             PODCAST_FAVORITES -> R.id.podcasts_favorites_fragment
             PODCAST_INBOX -> R.id.podcasts_inbox_fragment
-            // Multi-queue isn't built yet (see docs/PODCAST_DESIGN.md) -- Continue Listening's
-            // "see all" still only has the placeholder Queue tab to land on.
+            // Not a perfect match (Continue Listening is "has progress", not "in the active
+            // queue"), but the Queue tab is the closest full-list landing spot for it.
             PODCAST_CONTINUE_LISTENING -> R.id.podcasts_queue_fragment
             else -> R.id.podcasts_episodes_fragment
         }

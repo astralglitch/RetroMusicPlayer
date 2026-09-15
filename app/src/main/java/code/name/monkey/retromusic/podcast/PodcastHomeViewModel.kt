@@ -34,7 +34,8 @@ private const val LIST_SECTION_LIMIT = 3
  * albums/artists/playlists. Empty sections are dropped, same as Repository.homeSections().
  */
 class PodcastHomeViewModel(
-    private val repository: PodcastRepository
+    private val repository: PodcastRepository,
+    private val queueRepository: QueueRepository
 ) : ViewModel() {
 
     /** All subscriptions -- also used by PodcastHomeAdapter to look up cover art for the
@@ -70,6 +71,12 @@ class PodcastHomeViewModel(
     fun setEpisodeFavorited(episode: EpisodeEntity, favorited: Boolean) {
         viewModelScope.launch {
             repository.setEpisodeFavorited(episode.id, favorited)
+        }
+    }
+
+    fun addToActiveQueue(episode: EpisodeEntity) {
+        viewModelScope.launch {
+            queueRepository.addToActiveQueue(episode.id)
         }
     }
 }

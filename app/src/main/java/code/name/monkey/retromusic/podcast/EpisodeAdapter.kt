@@ -48,6 +48,12 @@ class EpisodeAdapter(
      * long-press-menu escape hatch for PreferenceUtil.preferStreaming's offline-first default;
      * a no-op default since not every list wires this up (yet). */
     private val onStream: (EpisodeEntity) -> Unit = {},
+    /** Long-press -> "Add to queue" -- adds to the active queue (see QueueRepository). A no-op
+     * default since not every list wires this up. */
+    private val onAddToQueue: (EpisodeEntity) -> Unit = {},
+    /** Long-press -> "Remove from queue" -- only shown (see showMenu()) when non-null, i.e. on
+     * QueueFragment's own list; meaningless anywhere else. */
+    private val onRemoveFromQueue: ((EpisodeEntity) -> Unit)? = null,
     /** When non-null, a small podcast-cover thumbnail is shown on each row (looked up by
      * episode.podcastId) -- for cross-podcast lists like the Podcasts Home sections, where it's
      * not otherwise obvious which show an episode belongs to. Null in single-podcast contexts
@@ -116,12 +122,16 @@ class EpisodeAdapter(
                 episode.downloadState == EpisodeDownloadState.DOWNLOADED
             popupMenu.menu.findItem(R.id.action_episode_stream).isVisible =
                 episode.downloadState != EpisodeDownloadState.DOWNLOADED
+            popupMenu.menu.findItem(R.id.action_episode_remove_from_queue).isVisible =
+                onRemoveFromQueue != null
             popupMenu.setOnMenuItemClickListener { item: MenuItem ->
                 when (item.itemId) {
                     R.id.action_episode_toggle_played -> onTogglePlayed(episode, !episode.played)
                     R.id.action_episode_toggle_favorited -> onToggleFavorited(episode, !episode.favorited)
                     R.id.action_episode_delete_download -> onDeleteDownload(episode)
                     R.id.action_episode_stream -> onStream(episode)
+                    R.id.action_episode_add_to_queue -> onAddToQueue(episode)
+                    R.id.action_episode_remove_from_queue -> onRemoveFromQueue?.invoke(episode)
                     else -> return@setOnMenuItemClickListener false
                 }
                 true

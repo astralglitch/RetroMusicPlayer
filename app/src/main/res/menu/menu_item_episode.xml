@@ -13,5 +13,11 @@
     <item
         android:id="@+id/action_episode_delete_download"
         android:title="@string/podcast_delete_download" />
+    <item
+        android:id="@+id/action_episode_add_to_queue"
+        android:title="@string/podcast_add_to_queue" />
+    <item
+        android:id="@+id/action_episode_remove_from_queue"
+        android:title="@string/podcast_remove_from_queue" />
 
 </menu>

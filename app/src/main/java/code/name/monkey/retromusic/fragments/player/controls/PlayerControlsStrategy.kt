@@ -36,6 +36,9 @@ interface PlayerControlsStrategy {
             MediaItemType.MUSIC -> MusicControlsStrategy
             MediaItemType.PODCAST_AUDIO -> PodcastAudioControlsStrategy
             MediaItemType.PODCAST_VIDEO -> PodcastAudioControlsStrategy
+            // No dedicated extras yet -- video library playback is future work (see AGENTS.md
+            // goal #6). Falls back to the plain transport controls in the meantime.
+            MediaItemType.VIDEO_LIBRARY -> MusicControlsStrategy
         }
     }
 }
@@ -46,8 +49,8 @@ object MusicControlsStrategy : PlayerControlsStrategy {
 }
 
 /**
- * Skip ±10/30s, playback speed, and tap-through to the podcast. Chapter navigation, bookmarks,
- * and a notes field are still just design notes (see docs/PODCAST_DESIGN.md) — not built here yet.
+ * Skip 30s back / 10s forward, playback speed, and tap-through to the podcast. Chapter
+ * navigation is still just a design note (see docs/PODCAST_DESIGN.md) — not built here yet.
  */
 object PodcastAudioControlsStrategy : PlayerControlsStrategy {
     override fun extrasFragment(): Fragment = PodcastExtraControlsFragment()

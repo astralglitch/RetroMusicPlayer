@@ -36,6 +36,7 @@ appcompat_version = "1.7.1"
 google_play_review_version = "2.0.2"
 room_version = "2.7.1"
 core_version = "1.16.0"
+documentfile_version = "1.0.1"
 
 #plugins
 devTools_ksp_version = "2.1.21-2.0.1"
@@ -117,6 +118,7 @@ androidx-constraintLayout = { group = "androidx.constraintlayout", name = "const
 androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version = "1.4.0" }
 androidx-preference-ktx = { group = "androidx.preference", name = "preference-ktx", version.ref = "preference_version" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core_version" }
+androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile_version" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 androidx-palette-ktx = { group = "androidx.palette", name = "palette-ktx", version = "1.0.0" }
 androidx-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version = "1.6.1" }

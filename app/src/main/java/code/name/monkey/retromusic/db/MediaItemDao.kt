@@ -31,6 +31,9 @@ interface MediaItemDao {
     @Query("SELECT * FROM MediaItemEntity WHERE song_id = :songId LIMIT 1")
     fun mediaItemForSong(songId: Long): MediaItemEntity?
 
+    @Query("SELECT type FROM MediaItemEntity WHERE song_id = :songId LIMIT 1")
+    suspend fun typeForSong(songId: Long): MediaItemType?
+
     @Query("SELECT * FROM MediaItemEntity WHERE type = :type")
     fun mediaItemsOfType(type: MediaItemType): List<MediaItemEntity>
 }

@@ -26,7 +26,7 @@ import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.util.PreferenceUtil
 
 /**
- * Podcast-appropriate transport extras (skip ±10/30s, playback speed) hosted by
+ * Podcast-appropriate transport extras (skip 30s back / 10s forward, playback speed) hosted by
  * [code.name.monkey.retromusic.fragments.base.AbsPlayerControlsFragment] alongside the base
  * transport controls every [code.name.monkey.retromusic.db.MediaItemType] gets. The podcast name
  * itself isn't shown here -- the surrounding player screen's existing artist-name row already
@@ -96,8 +96,8 @@ class PodcastExtraControlsFragment : AbsMusicServiceFragment(R.layout.fragment_p
     }
 
     companion object {
-        private const val SKIP_BACK_MS = 10_000
-        private const val SKIP_FORWARD_MS = 30_000
+        private const val SKIP_BACK_MS = 30_000
+        private const val SKIP_FORWARD_MS = 10_000
         private val SPEED_STEPS = floatArrayOf(1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
     }
 }

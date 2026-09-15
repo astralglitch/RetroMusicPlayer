@@ -32,6 +32,11 @@
         app:showAsAction="ifRoom" />
 
     <item
+        android:id="@+id/action_podcast_target_queue"
+        android:title="@string/podcast_target_queue"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_podcast_unsubscribe"
         android:icon="@drawable/ic_delete"
         android:title="@string/podcast_unsubscribe"

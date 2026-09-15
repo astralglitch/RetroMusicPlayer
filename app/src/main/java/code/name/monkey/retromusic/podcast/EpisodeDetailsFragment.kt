@@ -14,11 +14,14 @@
  */
 package code.name.monkey.retromusic.podcast
 
+import android.app.AlertDialog
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
+import android.widget.EditText
+import android.widget.FrameLayout
 import androidx.core.text.parseAsHtml
 import androidx.core.view.isVisible
 import androidx.navigation.fragment.findNavController
@@ -28,6 +31,7 @@ import code.name.monkey.retromusic.databinding.FragmentEpisodeDetailsBinding
 import code.name.monkey.retromusic.db.EpisodeDownloadState
 import code.name.monkey.retromusic.db.EpisodeEntity
 import code.name.monkey.retromusic.db.PodcastEntity
+import code.name.monkey.retromusic.extensions.showToast
 import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.util.PreferenceUtil
@@ -146,11 +150,75 @@ class EpisodeDetailsFragment : AbsMainActivityFragment(R.layout.fragment_episode
     }
 
     override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
-        if (menuItem.itemId == R.id.action_stream_episode) {
-            play()
-            return true
+        when (menuItem.itemId) {
+            R.id.action_stream_episode -> {
+                play()
+                return true
+            }
+
+            R.id.action_bookmark_position -> {
+                viewModel.addBookmarkAtCurrentPosition()
+                requireContext().showToast(getString(R.string.podcast_bookmark_added))
+                return true
+            }
+
+            R.id.action_edit_notes -> {
+                showEditNotesDialog()
+                return true
+            }
+
+            R.id.action_view_bookmarks -> {
+                showBookmarksDialog()
+                return true
+            }
         }
         return false
+    }
+
+    private fun showBookmarksDialog() {
+        val bookmarks = viewModel.bookmarks.value
+        val labels = bookmarks.map {
+            val totalSeconds = it.timestampMs / 1000
+            String.format("%02d:%02d:%02d", totalSeconds / 3600, (totalSeconds % 3600) / 60, totalSeconds % 60)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.podcast_view_bookmarks)
+            .apply {
+                if (labels.isEmpty()) {
+                    setMessage(R.string.podcast_no_bookmarks)
+                } else {
+                    setItems(labels.toTypedArray()) { _, index ->
+                        val episode = viewModel.episode.value ?: return@setItems
+                        val podcast = viewModel.podcast.value ?: return@setItems
+                        MusicPlayerRemote.openQueue(listOf(episode.toSong(podcast)), 0, true)
+                        MusicPlayerRemote.seekTo(bookmarks[index].timestampMs.toInt())
+                    }
+                }
+            }
+            .setNegativeButton(android.R.string.ok, null)
+            .show()
+    }
+
+    private fun showEditNotesDialog() {
+        val current = viewModel.episode.value ?: return
+        val input = EditText(requireContext()).apply {
+            setText(current.userNotes)
+            setHint(R.string.podcast_edit_notes)
+            minLines = 3
+        }
+        val padding = (16 * resources.displayMetrics.density).toInt()
+        val container = FrameLayout(requireContext()).apply {
+            setPadding(padding, padding / 2, padding, 0)
+            addView(input)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.podcast_edit_notes)
+            .setView(container)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                viewModel.setNotes(input.text?.toString()?.trim()?.ifBlank { null })
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     override fun onDestroyView() {

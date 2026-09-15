@@ -80,6 +80,7 @@ import code.name.monkey.retromusic.PLAYBACK_SPEED
 import code.name.monkey.retromusic.PLAYLIST_GRID_SIZE
 import code.name.monkey.retromusic.PLAYLIST_GRID_SIZE_LAND
 import code.name.monkey.retromusic.PLAYLIST_SORT_ORDER
+import code.name.monkey.retromusic.ACTIVE_QUEUE_ID
 import code.name.monkey.retromusic.PREFER_STREAMING
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.RECENTLY_PLAYED_CUTOFF
@@ -876,6 +877,10 @@ object PreferenceUtil {
             PREFER_STREAMING,
             false
         )
+
+    var activeQueueId: Long
+        get() = sharedPreferences.getLong(ACTIVE_QUEUE_ID, -1L)
+        set(value) = sharedPreferences.edit { putLong(ACTIVE_QUEUE_ID, value) }
 
     var audioFadeDuration
         get() = sharedPreferences

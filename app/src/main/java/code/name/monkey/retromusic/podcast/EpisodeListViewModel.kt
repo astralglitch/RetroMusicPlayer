@@ -31,6 +31,7 @@ enum class EpisodeListKind { FAVORITES, DOWNLOADS, HISTORY, INBOX, ALL }
 class EpisodeListViewModel(
     private val repository: PodcastRepository,
     private val downloadManager: EpisodeDownloadManager,
+    private val queueRepository: QueueRepository,
     kind: EpisodeListKind
 ) : ViewModel() {
 
@@ -58,5 +59,9 @@ class EpisodeListViewModel(
 
     fun deleteDownload(episode: EpisodeEntity) {
         viewModelScope.launch { downloadManager.deleteDownload(episode) }
+    }
+
+    fun addToActiveQueue(episode: EpisodeEntity) {
+        viewModelScope.launch { queueRepository.addToActiveQueue(episode.id) }
     }
 }

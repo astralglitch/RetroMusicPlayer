@@ -79,6 +79,7 @@ abstract class AbsEpisodeListFragment(
             onTogglePlayed = { episode, played -> viewModel.setPlayed(episode, played) },
             onToggleFavorited = { episode, favorited -> viewModel.setFavorited(episode, favorited) },
             onStream = ::streamEpisode,
+            onAddToQueue = { viewModel.addToActiveQueue(it) },
             podcastsById = podcastsById
         ).apply { submitList(episodes) }
         binding.emptyText.isVisible = episodes.isEmpty()

@@ -28,18 +28,30 @@ from every subscription land in it together, so a burst of low-priority entertai
 episodes can bury a time-sensitive news episode in the middle of the list, and the only
 fix is manually dragging things around.
 
-Proposed model:
-- `Queue`: `id`, `name`, `is_default`.
-- `QueueItem`: `queue_id`, `media_item_id`, `position`, `added_at`.
-- Exactly one queue is "active" (what the player actually pulls from next); switching
-  which queue is active is a UI action.
-- New-episode routing: each subscription has a target queue (defaults to the main
-  queue). A later, low-priority refinement: per-subscription ordering rules (e.g.
-  always push a given show's new episodes to the front vs. the back of its queue).
-- Motivating case: a "News" queue for shows you want to listen to promptly and in
-  order, separate from a general queue you work through oldest-first at your own pace.
-- **Status:** designed, not built. Needs subscriptions/episodes to exist first — see
-  "Build order" below.
+Model, as built (`db/QueueEntity.kt`, `db/QueueItemEntity.kt`, `podcast/QueueRepository.kt`):
+- `QueueEntity`: `id`, `name`, `is_default`, `created_at`. Every install gets exactly
+  one `is_default` queue, seeded by `MIGRATION_28_29` (which also backfills it with
+  any already-existing not-yet-played episodes, oldest first, so upgraders don't see
+  an empty queue).
+- `QueueItemEntity`: `queue_id`, `episode_id`, `position` (dense 0-based, fully
+  rewritten on reorder), `added_at`.
+- "Active" queue (what `QueueFragment` -- the Queue tab -- shows, and what the
+  universal long-press "Add to queue" action adds to) is
+  `PreferenceUtil.activeQueueId`, resolved through `QueueRepository.activeQueueId()`
+  with a fallback to the default queue if unset or since deleted. Switching it is a
+  `QueueFragment` overflow-menu action (also: create/rename/delete a queue; the
+  default queue can't be deleted).
+- New-episode routing: `PodcastEntity.targetQueueId` (null = default queue), set from
+  `PodcastDetailsFragment`'s overflow menu ("New episodes go to…").
+  `PodcastRepository.persistEpisodes()` auto-adds every genuinely-new episode (not
+  just an updated existing row -- detected via `@Upsert`'s per-row inserted-id-or--1
+  return) to that podcast's target queue on subscribe/refresh.
+- Tapping a `QueueFragment` row plays the whole queue starting there (sequential
+  listening being the point of a queue), rather than opening the episode's own
+  subpage like every other episode list in the app does.
+- Per-subscription ordering rules (front vs. back of queue) remain a later,
+  low-priority refinement, same as originally noted.
+- **Status:** built.
 
 ## Now Playing screen should be type-aware
 

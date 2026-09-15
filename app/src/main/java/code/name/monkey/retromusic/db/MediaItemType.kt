@@ -22,5 +22,6 @@ package code.name.monkey.retromusic.db
 enum class MediaItemType {
     MUSIC,
     PODCAST_AUDIO,
-    PODCAST_VIDEO
+    PODCAST_VIDEO,
+    VIDEO_LIBRARY
 }

@@ -19,11 +19,18 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
+import code.name.monkey.retromusic.db.BookmarkDao
+import code.name.monkey.retromusic.db.BookmarkEntity
 import code.name.monkey.retromusic.db.EpisodeDownloadState
 import code.name.monkey.retromusic.db.EpisodeEntity
 import code.name.monkey.retromusic.db.PodcastEntity
+import code.name.monkey.retromusic.helper.MusicPlayerRemote
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** Backs EpisodeDetailsFragment -- a single-episode subpage reached from cross-podcast lists
  * (Podcasts Home) where tapping an entry used to jump straight into playback. Episodes usually
@@ -32,10 +39,14 @@ import kotlinx.coroutines.launch
 class EpisodeDetailsViewModel(
     private val repository: PodcastRepository,
     private val downloadManager: EpisodeDownloadManager,
-    episodeId: Long
+    private val bookmarkDao: BookmarkDao,
+    private val episodeId: Long
 ) : ViewModel() {
 
     val episode: LiveData<EpisodeEntity?> = repository.episode(episodeId).asLiveData()
+
+    private val _bookmarks = MutableStateFlow<List<BookmarkEntity>>(emptyList())
+    val bookmarks = _bookmarks.asStateFlow()
 
     private val _podcast = MutableLiveData<PodcastEntity?>()
     val podcast: LiveData<PodcastEntity?> = _podcast
@@ -46,6 +57,7 @@ class EpisodeDetailsViewModel(
     private var loadedPodcastFor: Long? = null
 
     init {
+        loadBookmarks()
         viewModelScope.launch {
             while (true) {
                 val current = episode.value
@@ -81,5 +93,29 @@ class EpisodeDetailsViewModel(
     fun setFavorited(favorited: Boolean) {
         val current = episode.value ?: return
         viewModelScope.launch { repository.setEpisodeFavorited(current.id, favorited) }
+    }
+
+    /** Adds a bookmark at the player's current position -- only meaningful while this episode is
+     * the one actually playing, same assumption the skip controls make. */
+    fun addBookmarkAtCurrentPosition() {
+        val current = episode.value ?: return
+        if (current.id != episodeId) return
+        val position = MusicPlayerRemote.songProgressMillis.toLong()
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                bookmarkDao.insertBookmark(BookmarkEntity(episodeId = episodeId, timestampMs = position))
+            }
+            loadBookmarks()
+        }
+    }
+
+    fun setNotes(notes: String?) {
+        viewModelScope.launch { repository.setEpisodeNotes(episodeId, notes) }
+    }
+
+    private fun loadBookmarks() {
+        viewModelScope.launch {
+            _bookmarks.value = withContext(Dispatchers.IO) { bookmarkDao.bookmarksForEpisode(episodeId) }
+        }
     }
 }

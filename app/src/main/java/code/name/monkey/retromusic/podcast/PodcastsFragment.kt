@@ -15,6 +15,8 @@
 package code.name.monkey.retromusic.podcast
 
 import android.app.AlertDialog
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -22,7 +24,9 @@ import android.view.SubMenu
 import android.view.View
 import android.widget.EditText
 import android.widget.FrameLayout
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.os.bundleOf
+import androidx.documentfile.provider.DocumentFile
 import androidx.navigation.fragment.FragmentNavigatorExtras
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
@@ -46,6 +50,22 @@ class PodcastsFragment :
     IPodcastClickListener {
 
     private val viewModel: PodcastsViewModel by viewModel()
+
+    // Persist the grant across app restarts so a later refresh/re-scan of this folder podcast
+    // doesn't lose access -- see ContentResolver.takePersistableUriPermission below.
+    private val openFolderLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { treeUri: Uri? ->
+        if (treeUri != null) {
+            requireContext().contentResolver.takePersistableUriPermission(
+                treeUri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+            val displayName = DocumentFile.fromTreeUri(requireContext(), treeUri)
+                ?.name ?: treeUri.lastPathSegment ?: getString(R.string.podcast_subscriptions_tab)
+            viewModel.subscribeFolder(treeUri, displayName)
+        }
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -97,6 +117,9 @@ class PodcastsFragment :
                 if (feedUrl.isNotBlank()) {
                     viewModel.subscribe(feedUrl)
                 }
+            }
+            .setNeutralButton(R.string.podcast_add_folder) { _, _ ->
+                openFolderLauncher.launch(null)
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()

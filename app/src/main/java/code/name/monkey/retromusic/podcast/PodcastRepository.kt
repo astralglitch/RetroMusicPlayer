@@ -14,11 +14,18 @@
  */
 package code.name.monkey.retromusic.podcast
 
+import android.content.Context
+import android.net.Uri
+import androidx.core.net.toUri
 import code.name.monkey.retromusic.db.EpisodeDao
 import code.name.monkey.retromusic.db.EpisodeDownloadState
 import code.name.monkey.retromusic.db.EpisodeEntity
+import code.name.monkey.retromusic.db.MediaItemDao
+import code.name.monkey.retromusic.db.MediaItemEntity
+import code.name.monkey.retromusic.db.MediaItemType
 import code.name.monkey.retromusic.db.PodcastDao
 import code.name.monkey.retromusic.db.PodcastEntity
+import code.name.monkey.retromusic.db.PodcastSourceType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -26,9 +33,12 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 
 class PodcastRepository(
+    private val context: Context,
     private val okHttpClient: OkHttpClient,
     private val podcastDao: PodcastDao,
-    private val episodeDao: EpisodeDao
+    private val episodeDao: EpisodeDao,
+    private val mediaItemDao: MediaItemDao,
+    private val queueRepository: QueueRepository
 ) {
 
     fun podcasts(): Flow<List<PodcastEntity>> = podcastDao.podcasts()
@@ -81,6 +91,11 @@ class PodcastRepository(
         podcastDao.updateFavorited(podcastId, favorited)
     }
 
+    /** [queueId] null means "back to the default queue" -- see QueueRepository. */
+    suspend fun setPodcastTargetQueue(podcastId: Long, queueId: Long?) = withContext(Dispatchers.IO) {
+        podcastDao.updateTargetQueue(podcastId, queueId)
+    }
+
     suspend fun podcastById(podcastId: Long): PodcastEntity? = podcastDao.podcastById(podcastId)
 
     /** Live-updating single episode -- backs EpisodeDetailsFragment. */
@@ -99,11 +114,11 @@ class PodcastRepository(
     }
 
     /** Subscribes to [feedUrl] if not already subscribed, then fetches its current episode list. */
-    suspend fun subscribe(feedUrl: String): Result<PodcastEntity> = withContext(Dispatchers.IO) {
+    suspend fun subscribeRss(feedUrl: String): Result<PodcastEntity> = withContext(Dispatchers.IO) {
         runCatching {
             val existing = podcastDao.podcastForFeedUrl(feedUrl)
             if (existing != null) {
-                refresh(existing)
+                refresh(existing).getOrThrow()
                 return@runCatching existing
             }
 
@@ -114,30 +129,69 @@ class PodcastRepository(
                     title = feed.title.ifBlank { feedUrl },
                     imageUrl = feed.imageUrl,
                     description = feed.description,
-                    lastFetched = System.currentTimeMillis()
+                    lastFetched = System.currentTimeMillis(),
+                    sourceType = PodcastSourceType.RSS
                 )
             )
-            persistEpisodes(podcastId, feed)
+            persistEpisodes(podcastId, feed.episodes, targetQueueId = null)
             podcastDao.podcastById(podcastId) ?: error("Podcast disappeared right after insert")
         }
     }
 
-    /** Re-fetches an already-subscribed feed and upserts any new/changed episodes. */
+    /** Maps [treeUri] (from `ACTION_OPEN_DOCUMENT_TREE`) as a podcast source if not already
+     * mapped, then scans its current audio files into episodes. Caller is responsible for
+     * `takePersistableUriPermission` on [treeUri] before calling this, so the mapping survives
+     * app restarts. */
+    suspend fun subscribeFolder(treeUri: Uri, displayName: String): Result<PodcastEntity> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val uriString = treeUri.toString()
+                val existing = podcastDao.podcastForFolderUri(uriString)
+                if (existing != null) {
+                    refresh(existing).getOrThrow()
+                    return@runCatching existing
+                }
+
+                val podcastId = podcastDao.upsertPodcast(
+                    PodcastEntity(
+                        title = displayName,
+                        lastFetched = System.currentTimeMillis(),
+                        sourceType = PodcastSourceType.FOLDER,
+                        folderUri = uriString
+                    )
+                )
+                val episodes = FolderPodcastScanner.scan(context, treeUri)
+                persistEpisodes(podcastId, episodes, targetQueueId = null)
+                podcastDao.podcastById(podcastId) ?: error("Podcast disappeared right after insert")
+            }
+        }
+
+    /** Re-fetches an already-subscribed podcast's episode list -- RSS re-fetch or folder
+     * re-scan, dispatched on [PodcastEntity.sourceType]. */
     suspend fun refresh(podcast: PodcastEntity): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
-            val feed = fetchAndParse(podcast.feedUrl)
-            persistEpisodes(podcast.id, feed)
-            podcastDao.upsertPodcast(
-                PodcastEntity(
-                    id = podcast.id,
-                    feedUrl = podcast.feedUrl,
-                    title = feed.title.ifBlank { podcast.title },
-                    imageUrl = feed.imageUrl ?: podcast.imageUrl,
-                    description = feed.description ?: podcast.description,
-                    lastFetched = System.currentTimeMillis(),
-                    favorited = podcast.favorited
-                )
-            )
+            when (podcast.sourceType) {
+                PodcastSourceType.RSS -> {
+                    val feedUrl = podcast.feedUrl ?: error("RSS podcast ${podcast.id} has no feed_url")
+                    val feed = fetchAndParse(feedUrl)
+                    persistEpisodes(podcast.id, feed.episodes, podcast.targetQueueId)
+                    podcastDao.upsertPodcast(
+                        podcast.copy(
+                            title = feed.title.ifBlank { podcast.title },
+                            imageUrl = feed.imageUrl ?: podcast.imageUrl,
+                            description = feed.description ?: podcast.description,
+                            lastFetched = System.currentTimeMillis()
+                        )
+                    )
+                }
+
+                PodcastSourceType.FOLDER -> {
+                    val folderUri = podcast.folderUri ?: error("Folder podcast ${podcast.id} has no folder_uri")
+                    val episodes = FolderPodcastScanner.scan(context, folderUri.toUri())
+                    persistEpisodes(podcast.id, episodes, podcast.targetQueueId)
+                    podcastDao.upsertPodcast(podcast.copy(lastFetched = System.currentTimeMillis()))
+                }
+            }
             Unit
         }
     }
@@ -153,8 +207,19 @@ class PodcastRepository(
         }
     }
 
-    private suspend fun persistEpisodes(podcastId: Long, feed: ParsedFeed) {
-        val entities = feed.episodes.map { parsed ->
+    /** Persists [episodes] (from either an RSS feed or a folder scan), then routes any genuinely
+     * new ones (not just updated existing rows) into [targetQueueId], or the default queue if the
+     * podcast doesn't have its own -- see the "Multi-queue" section of docs/PODCAST_DESIGN.md.
+     * Also registers each episode in [MediaItemEntity], making that table the queryable type
+     * registry for the item rather than just an id-range heuristic. Folder-sourced episodes that
+     * disappeared from the folder are left in place (not deleted), mirroring how an RSS refresh
+     * already treats items dropped from the feed. */
+    private suspend fun persistEpisodes(
+        podcastId: Long,
+        episodes: List<ParsedEpisode>,
+        targetQueueId: Long?
+    ) {
+        val entities = episodes.map { parsed ->
             val existing = episodeDao.episodeForGuid(podcastId, parsed.guid)
             EpisodeEntity(
                 id = existing?.id ?: 0,
@@ -165,6 +230,7 @@ class PodcastRepository(
                 pubDate = parsed.pubDate,
                 durationMs = parsed.durationMs,
                 description = parsed.description,
+                userNotes = existing?.userNotes,
                 localFilePath = existing?.localFilePath,
                 downloadState = existing?.downloadState ?: EpisodeDownloadState.NOT_DOWNLOADED,
                 downloadId = existing?.downloadId,
@@ -173,6 +239,29 @@ class PodcastRepository(
                 favorited = existing?.favorited ?: false
             )
         }
-        episodeDao.upsertEpisodes(entities)
+        // @Upsert returns each row's id for a fresh insert, -1 for a row that instead went
+        // through the update path -- exactly the "is this genuinely new" signal we need, with no
+        // extra queries.
+        val rowIds = episodeDao.upsertEpisodes(entities)
+        val newEpisodeIds = rowIds.filter { it != -1L }
+
+        // All podcast sources are audio-only for now (video is AGENTS.md goal #4, not built yet).
+        entities.forEachIndexed { index, entity ->
+            val episodeId = if (entity.id != 0L) entity.id else rowIds.getOrNull(index)?.takeIf { it != -1L }
+            if (episodeId != null) {
+                mediaItemDao.upsertMediaItem(
+                    MediaItemEntity(songId = EPISODE_SONG_ID_OFFSET + episodeId, type = MediaItemType.PODCAST_AUDIO)
+                )
+            }
+        }
+
+        if (newEpisodeIds.isNotEmpty()) {
+            val queueId = targetQueueId ?: queueRepository.defaultQueue().id
+            newEpisodeIds.forEach { episodeId -> queueRepository.addToQueue(queueId, episodeId) }
+        }
+    }
+
+    suspend fun setEpisodeNotes(episodeId: Long, notes: String?) = withContext(Dispatchers.IO) {
+        episodeDao.updateUserNotes(episodeId, notes)
     }
 }

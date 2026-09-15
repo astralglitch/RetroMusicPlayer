@@ -23,6 +23,7 @@ import code.name.monkey.retromusic.db.EpisodeDownloadState
 import code.name.monkey.retromusic.db.EpisodeDownloadState.NOT_DOWNLOADED
 import code.name.monkey.retromusic.db.EpisodeEntity
 import code.name.monkey.retromusic.db.PodcastEntity
+import code.name.monkey.retromusic.db.QueueEntity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -32,6 +33,7 @@ import kotlinx.coroutines.launch
 class PodcastDetailsViewModel(
     private val repository: PodcastRepository,
     private val downloadManager: EpisodeDownloadManager,
+    private val queueRepository: QueueRepository,
     private val podcastId: Long
 ) : ViewModel() {
 
@@ -97,6 +99,22 @@ class PodcastDetailsViewModel(
     fun setFavorited(episode: EpisodeEntity, favorited: Boolean) {
         viewModelScope.launch {
             repository.setEpisodeFavorited(episode.id, favorited)
+        }
+    }
+
+    fun addToActiveQueue(episode: EpisodeEntity) {
+        viewModelScope.launch {
+            queueRepository.addToActiveQueue(episode.id)
+        }
+    }
+
+    val queues: LiveData<List<QueueEntity>> = queueRepository.queues().asLiveData()
+
+    /** null means "the default queue" -- see PodcastEntity.targetQueueId. */
+    fun setTargetQueue(queueId: Long?) {
+        viewModelScope.launch {
+            repository.setPodcastTargetQueue(podcastId, queueId)
+            _podcast.value = repository.podcastById(podcastId)
         }
     }
 

@@ -85,7 +85,8 @@ class PodcastDetailsFragment : AbsMainActivityFragment(R.layout.fragment_podcast
             onDeleteDownload = { viewModel.deleteDownload(it) },
             onTogglePlayed = { episode, played -> viewModel.setPlayed(episode, played) },
             onToggleFavorited = { episode, favorited -> viewModel.setFavorited(episode, favorited) },
-            onStream = { playEpisode(it) }
+            onStream = { playEpisode(it) },
+            onAddToQueue = { viewModel.addToActiveQueue(it) }
         )
         binding.episodesRecyclerView.apply {
             layoutManager = LinearLayoutManager(requireContext())
@@ -222,12 +223,34 @@ class PodcastDetailsFragment : AbsMainActivityFragment(R.layout.fragment_podcast
                 return true
             }
 
+            R.id.action_podcast_target_queue -> {
+                showTargetQueueDialog()
+                return true
+            }
+
             R.id.action_podcast_unsubscribe -> {
                 confirmUnsubscribe()
                 return true
             }
         }
         return false
+    }
+
+    private fun showTargetQueueDialog() {
+        val podcast = viewModel.podcast.value ?: return
+        val queues = viewModel.queues.value.orEmpty()
+        if (queues.isEmpty()) return
+        val labels = (listOf(getString(R.string.podcast_target_queue_default)) + queues.map { it.name })
+            .toTypedArray()
+        val currentIndex = queues.indexOfFirst { it.id == podcast.targetQueueId }.let { if (it == -1) 0 else it + 1 }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.podcast_target_queue)
+            .setSingleChoiceItems(labels, currentIndex) { dialog, which ->
+                viewModel.setTargetQueue(if (which == 0) null else queues[which - 1].id)
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun showFilterDialog() {

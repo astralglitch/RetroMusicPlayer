@@ -35,7 +35,11 @@ val podcastModule = module {
     }
 
     single {
-        PodcastRepository(get(PODCAST_HTTP_CLIENT), get(), get())
+        QueueRepository(get())
+    }
+
+    single {
+        PodcastRepository(androidContext(), get(PODCAST_HTTP_CLIENT), get(), get(), get(), get())
     }
 
     single {
@@ -51,18 +55,22 @@ val podcastModule = module {
     }
 
     viewModel {
-        PodcastHomeViewModel(get())
+        PodcastHomeViewModel(get(), get())
     }
 
     viewModel { (podcastId: Long) ->
-        PodcastDetailsViewModel(get(), get(), podcastId)
+        PodcastDetailsViewModel(get(), get(), get(), podcastId)
     }
 
     viewModel { (episodeId: Long) ->
-        EpisodeDetailsViewModel(get(), get(), episodeId)
+        EpisodeDetailsViewModel(get(), get(), get(), episodeId)
     }
 
     viewModel { (kind: EpisodeListKind) ->
-        EpisodeListViewModel(get(), get(), kind)
+        EpisodeListViewModel(get(), get(), get(), kind)
+    }
+
+    viewModel {
+        QueueViewModel(get())
     }
 }

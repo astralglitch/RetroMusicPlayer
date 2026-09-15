@@ -14,6 +14,7 @@
  */
 package code.name.monkey.retromusic.podcast
 
+import android.net.Uri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -38,8 +39,15 @@ class PodcastsViewModel(
 
     fun subscribe(feedUrl: String) {
         viewModelScope.launch {
-            repository.subscribe(feedUrl.trim())
+            repository.subscribeRss(feedUrl.trim())
                 .onFailure { _subscribeError.postValue(it.message ?: "Failed to subscribe") }
+        }
+    }
+
+    fun subscribeFolder(treeUri: Uri, displayName: String) {
+        viewModelScope.launch {
+            repository.subscribeFolder(treeUri, displayName)
+                .onFailure { _subscribeError.postValue(it.message ?: "Failed to add folder") }
         }
     }
 

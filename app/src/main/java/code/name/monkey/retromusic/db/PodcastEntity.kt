@@ -19,14 +19,24 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-/** A subscribed podcast feed. */
+/** Where a [PodcastEntity]'s episodes are discovered from. */
+enum class PodcastSourceType {
+    RSS,
+    FOLDER
+}
+
+/** A subscribed podcast feed, or a local/network folder mapped as a podcast source. */
 @Entity(indices = [Index(value = ["feed_url"], unique = true)])
 data class PodcastEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
 
+    /** Present for [PodcastSourceType.RSS] sources; null for [PodcastSourceType.FOLDER] ones.
+     * Still indexed unique so two RSS subscriptions can't collide -- folder sources dedupe on
+     * [folderUri] instead (checked in code, not the DB, since a nullable column can't carry a
+     * second unique index without allowing multiple NULLs to collide on some SQLite versions). */
     @ColumnInfo(name = "feed_url")
-    val feedUrl: String,
+    val feedUrl: String? = null,
 
     val title: String,
 
@@ -39,5 +49,19 @@ data class PodcastEntity(
     val lastFetched: Long = 0,
 
     /** Starred subscription -- separate from favorited episodes (EpisodeEntity.favorited). */
-    val favorited: Boolean = false
+    val favorited: Boolean = false,
+
+    /** Which [QueueEntity] this show's new episodes are auto-added to. Null means "the default
+     * queue" rather than baking in a specific id, so it stays correct even if the default
+     * queue's own id ever changes. */
+    @ColumnInfo(name = "target_queue_id")
+    val targetQueueId: Long? = null,
+
+    @ColumnInfo(name = "source_type", defaultValue = "RSS")
+    val sourceType: PodcastSourceType = PodcastSourceType.RSS,
+
+    /** Persisted SAF tree URI string (see `ContentResolver.takePersistableUriPermission`),
+     * present only for [PodcastSourceType.FOLDER] sources. */
+    @ColumnInfo(name = "folder_uri")
+    val folderUri: String? = null
 )
