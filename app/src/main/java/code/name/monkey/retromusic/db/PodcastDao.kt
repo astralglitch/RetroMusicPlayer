@@ -49,4 +49,7 @@ interface PodcastDao {
 
     @Query("UPDATE PodcastEntity SET target_queue_id = :queueId WHERE id = :podcastId")
     suspend fun updateTargetQueue(podcastId: Long, queueId: Long?)
+
+    @Query("UPDATE PodcastEntity SET feed_url = :feedUrl WHERE id = :podcastId")
+    suspend fun updateFeedUrl(podcastId: Long, feedUrl: String)
 }

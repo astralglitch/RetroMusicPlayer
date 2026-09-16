@@ -6,6 +6,7 @@ import android.media.audiofx.AudioEffect
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.net.Uri
+import android.view.Surface
 import code.name.monkey.appthemehelper.util.VersionUtils
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.extensions.showToast
@@ -193,6 +194,18 @@ class PlaybackManager(val context: Context) {
 
     fun setPlaybackSpeedPitch(playbackSpeed: Float, playbackPitch: Float) {
         playback?.setPlaybackSpeedPitch(playbackSpeed, playbackPitch)
+    }
+
+    fun setVideoSurface(surface: Surface?) {
+        playback?.setVideoSurface(surface)
+    }
+
+    fun swapMediaSource(uri: Uri, resumePositionMs: Long) {
+        playback?.swapMediaSource(uri, resumePositionMs)
+    }
+
+    fun setVideoSizeListener(listener: ((width: Int, height: Int) -> Unit)?) {
+        playback?.setVideoSizeListener(listener)
     }
 
     private fun speakerEnabled(): Boolean {

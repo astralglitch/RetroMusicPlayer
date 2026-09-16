@@ -150,3 +150,19 @@ val MIGRATION_29_30 = object : Migration(29, 30) {
         )
     }
 }
+
+val MIGRATION_30_31 = object : Migration(30, 31) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            "ALTER TABLE `EpisodeEntity` ADD COLUMN `video_url` TEXT"
+        )
+    }
+}
+
+val MIGRATION_31_32 = object : Migration(31, 32) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            "ALTER TABLE `EpisodeEntity` ADD COLUMN `video_source_url` TEXT"
+        )
+    }
+}

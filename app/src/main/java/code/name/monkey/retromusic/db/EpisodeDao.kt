@@ -39,6 +39,9 @@ interface EpisodeDao {
     @Query("UPDATE EpisodeEntity SET user_notes = :notes WHERE id = :episodeId")
     suspend fun updateUserNotes(episodeId: Long, notes: String?)
 
+    @Query("UPDATE EpisodeEntity SET video_source_url = :url WHERE id = :episodeId")
+    suspend fun updateVideoSourceUrl(episodeId: Long, url: String?)
+
     @Query("SELECT guid FROM EpisodeEntity WHERE podcast_id = :podcastId")
     suspend fun guidsForPodcast(podcastId: Long): List<String>
 

@@ -138,7 +138,10 @@ class PodcastDetailsFragment : AbsMainActivityFragment(R.layout.fragment_podcast
 
     private fun showPodcast(podcast: PodcastEntity) {
         binding.podcastTitle.text = podcast.title
-        binding.podcastDescription.text = podcast.description?.parseAsHtml()?.toString()?.trim()
+        // See EpisodeDetailsFragment for why this doesn't call .toString() -- that discarded
+        // every link/formatting span the HTML parse just produced.
+        binding.podcastDescription.text = podcast.description?.parseAsHtml()?.trimSpanned()
+        binding.podcastDescription.movementMethod = android.text.method.LinkMovementMethod.getInstance()
         binding.podcastDescription.isVisible = !podcast.description.isNullOrBlank()
         Glide.with(this)
             .load(podcast.imageUrl)
@@ -230,6 +233,14 @@ class PodcastDetailsFragment : AbsMainActivityFragment(R.layout.fragment_podcast
 
             R.id.action_podcast_unsubscribe -> {
                 confirmUnsubscribe()
+                return true
+            }
+
+            R.id.action_podcast_settings -> {
+                findNavController().navigate(
+                    R.id.podcastSettingsFragment,
+                    bundleOf("extra_podcast_id" to arguments.extraPodcastId)
+                )
                 return true
             }
         }

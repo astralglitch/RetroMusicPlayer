@@ -15,6 +15,7 @@
 package code.name.monkey.retromusic.service.playback
 
 import android.net.Uri
+import android.view.Surface
 import code.name.monkey.retromusic.model.Song
 
 
@@ -55,6 +56,22 @@ interface Playback {
     fun setCrossFadeDuration(duration: Int)
 
     fun setPlaybackSpeedPitch(speed: Float, pitch: Float)
+
+    /** Attaches (or, with null, detaches) a video output surface -- only meaningful for a
+     * [Playback] backed by an actual video-capable player (see `RetroExoPlayer`). A default
+     * no-op here so `CrossFadePlayer`/`CastPlayer` don't need to care about video at all. */
+    fun setVideoSurface(surface: Surface?) {}
+
+    /** Swaps the currently loaded media source for [uri] in place, resuming at
+     * [resumePositionMs] and preserving whatever the play/pause state was -- the audio<->video
+     * toggle's "capture position, swap, seek, resume" sequence for one [Playback] instance. No-op
+     * by default, same reasoning as [setVideoSurface]. */
+    fun swapMediaSource(uri: Uri, resumePositionMs: Long) {}
+
+    /** Reports the natural (width, height) of the current video track as it becomes known/
+     * changes, so a UI showing the video surface can size it to fit without stretching. No-op
+     * by default, same reasoning as [setVideoSurface]. */
+    fun setVideoSizeListener(listener: ((width: Int, height: Int) -> Unit)?) {}
 
     interface PlaybackCallbacks {
         fun onTrackWentToNext()

@@ -17,8 +17,11 @@ package code.name.monkey.retromusic.fragments.player
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.content.SharedPreferences
+import android.content.res.Configuration
 import android.os.Bundle
+import android.view.SurfaceHolder
 import android.view.View
+import android.view.ViewGroup
 import androidx.annotation.ColorInt
 import androidx.core.animation.doOnEnd
 import androidx.core.view.isVisible
@@ -45,6 +48,9 @@ import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.helper.MusicProgressViewUpdateHelper
 import code.name.monkey.retromusic.lyrics.CoverLrcView
 import code.name.monkey.retromusic.model.lyrics.Lyrics
+import code.name.monkey.retromusic.podcast.PodcastVideoFullscreen
+import code.name.monkey.retromusic.podcast.PodcastVideoFullscreenDialogFragment
+import code.name.monkey.retromusic.podcast.PodcastVideoToggle
 import code.name.monkey.retromusic.transform.CarousalPagerTransformer
 import code.name.monkey.retromusic.transform.ParallaxPagerTransformer
 import code.name.monkey.retromusic.util.CoverLyricsType
@@ -77,6 +83,119 @@ class PlayerAlbumCoverFragment : AbsMusicServiceFragment(R.layout.fragment_playe
     private val lrcView: CoverLrcView get() = binding.lyricsView
 
     var lyrics: Lyrics? = null
+
+    // Tracks whether the video source is actually attached right now, distinct from
+    // PodcastVideoToggle.isActive (the user's on/off intent) -- lets applyVideoToggleState be
+    // called repeatedly and idempotently (e.g. every onResume, to fight showLyrics() clobbering
+    // viewPager visibility) without re-swapping the media source and causing a visible glitch
+    // when nothing actually needs to change.
+    private var isVideoAttached = false
+
+    // Registered once and never removed -- see the surfaceCreated/surfaceDestroyed callbacks
+    // below. A previous version of this feature called `holder.removeCallback(this)` from
+    // surfaceDestroyed, which permanently unregistered the callback after the very first
+    // toggle-off, so later toggles silently did nothing (symptom: a stuck black surface after a
+    // couple of on/off cycles).
+    private val videoSurfaceCallback = object : SurfaceHolder.Callback {
+        override fun surfaceCreated(holder: SurfaceHolder) {
+            MusicPlayerRemote.setVideoSurface(holder.surface)
+            MusicPlayerRemote.setVideoSizeListener(::applyVideoAspect)
+            MusicPlayerRemote.toggleEpisodeVideo(true)
+            isVideoAttached = true
+        }
+
+        override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
+
+        override fun surfaceDestroyed(holder: SurfaceHolder) {
+            // Defensive cleanup only -- turning video off is driven explicitly by
+            // applyVideoToggleState(false), not by this (SurfaceView's visibility-vs-surface-
+            // lifecycle timing isn't reliable enough to drive the actual media swap from here).
+            MusicPlayerRemote.setVideoSizeListener(null)
+            MusicPlayerRemote.setVideoSurface(null)
+            isVideoAttached = false
+        }
+    }
+
+    /** Resizes the video surface to fit the available width, letterboxed to the video's own
+     * aspect ratio (podcast thumbnails tend to be square/portrait, so "fit width" reads better
+     * as a default than stretching to fill the whole square cover area). VLC-style fit/zoom/
+     * stretch options are a natural follow-up, not built yet. */
+    private fun applyVideoAspect(videoWidth: Int, videoHeight: Int) {
+        val binding = _binding ?: return
+        val parentWidth = (binding.videoSurfaceView.parent as? View)?.width ?: return
+        if (parentWidth <= 0) return
+        val fitHeight = (parentWidth.toFloat() * videoHeight / videoWidth).toInt().coerceAtLeast(1)
+        binding.videoSurfaceView.layoutParams = binding.videoSurfaceView.layoutParams.apply {
+            width = ViewGroup.LayoutParams.MATCH_PARENT
+            height = fitHeight
+        }
+    }
+
+    private fun applyVideoToggleState(active: Boolean) {
+        val binding = _binding ?: return
+        binding.videoSurfaceView.isVisible = active
+        binding.viewPager.isVisible = !active
+        binding.videoFullscreenButton.isVisible = active
+
+        // cover_lyrics/fading_edge_layout sit above the video surface in z-order (added later in
+        // the XML) and can end up covering it -- e.g. the fullscreen button "disappearing" once
+        // the async lyrics lookup in updateLyrics() finished and made one of them visible -- and
+        // CoverLrcView's own click listener (goToLyrics) was swallowing taps meant for the video,
+        // which is why tapping the video surface unexpectedly opened lyrics. Tapping the inline
+        // video is meant to do nothing (fullscreen has its own dedicated button); force these off
+        // while video is active, and let the normal lyrics logic decide again once it's not.
+        if (active) {
+            binding.coverLyrics.isVisible = false
+            binding.fadingEdgeLayout.isVisible = false
+        } else {
+            maybeInitLyrics()
+        }
+
+        // While the fullscreen dialog is up, the video surface is targeted there instead (see
+        // PodcastVideoFullscreenDialogFragment) -- don't fight it for the surface reference.
+        if (PodcastVideoFullscreen.isFullscreen.value) return
+
+        if (active) {
+            if (isVideoAttached) return
+            val surface = binding.videoSurfaceView.holder.surface
+            if (surface != null && surface.isValid) {
+                // Surface already exists from a previous toggle-on this fragment lifetime --
+                // surfaceCreated won't fire again for it, so attach directly.
+                MusicPlayerRemote.setVideoSurface(surface)
+                MusicPlayerRemote.setVideoSizeListener(::applyVideoAspect)
+                MusicPlayerRemote.toggleEpisodeVideo(true)
+                isVideoAttached = true
+            }
+            // Otherwise videoSurfaceCallback.surfaceCreated (registered once, permanently) does
+            // the same attach sequence once the surface actually exists.
+        } else {
+            if (!isVideoAttached) return
+            MusicPlayerRemote.setVideoSizeListener(null)
+            MusicPlayerRemote.setVideoSurface(null)
+            isVideoAttached = false
+            MusicPlayerRemote.toggleEpisodeVideo(false)
+        }
+    }
+
+    private fun openFullscreenVideo() {
+        if (parentFragmentManager.findFragmentByTag(PodcastVideoFullscreenDialogFragment.TAG) != null) return
+        PodcastVideoFullscreenDialogFragment().show(parentFragmentManager, PodcastVideoFullscreenDialogFragment.TAG)
+    }
+
+    /** Checked from onResume rather than onConfigurationChanged -- the app doesn't declare
+     * `configChanges` for orientation (removing that was itself a fix: it broke the bottom
+     * nav's landscape-vs-portrait layout swap, which depends on the Activity actually
+     * recreating on rotation), so the Activity/fragment gets recreated on rotation instead of
+     * receiving a configuration-changed callback. onResume runs again after that recreation,
+     * which is exactly the point recreation finishes and this fragment is back in the tree. */
+    private fun maybeAutoFullscreenForLandscape() {
+        if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE &&
+            PodcastVideoToggle.isActive.value &&
+            !PodcastVideoFullscreen.isFullscreen.value
+        ) {
+            openFullscreenVideo()
+        }
+    }
 
     fun removeSlideEffect() {
         val transformer = ParallaxPagerTransformer(R.id.player_image)
@@ -130,6 +249,32 @@ class PlayerAlbumCoverFragment : AbsMusicServiceFragment(R.layout.fragment_playe
                 goToLyrics(requireActivity())
             }
         }
+
+        binding.videoSurfaceView.holder.addCallback(videoSurfaceCallback)
+        binding.videoFullscreenButton.setOnClickListener { openFullscreenVideo() }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                PodcastVideoToggle.isActive.collect { active -> applyVideoToggleState(active) }
+            }
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                var wasFullscreen = false
+                PodcastVideoFullscreen.isFullscreen.collect { fullscreen ->
+                    if (wasFullscreen && !fullscreen && PodcastVideoToggle.isActive.value) {
+                        // The fullscreen dialog held the video surface reference while it was
+                        // up (see applyVideoToggleState's early return above) -- isVideoAttached
+                        // is stale here, so force a fresh reattach of the still-valid inline
+                        // surface rather than trusting that flag.
+                        isVideoAttached = false
+                        applyVideoToggleState(true)
+                    }
+                    wasFullscreen = fullscreen
+                }
+            }
+        }
+        // Auto-fullscreen on rotate to landscape, only while video is actually active -- see
+        // onConfigurationChanged below.
     }
 
     private fun setupViewPager() {
@@ -165,6 +310,12 @@ class PlayerAlbumCoverFragment : AbsMusicServiceFragment(R.layout.fragment_playe
         maybeInitLyrics()
         PreferenceManager.getDefaultSharedPreferences(requireContext())
             .registerOnSharedPreferenceChangeListener(this)
+        // maybeInitLyrics() -> showLyrics() unconditionally sets viewPager visible again, which
+        // clobbers video mode's hidden state (symptom: album art showing behind the video again
+        // after backgrounding the app and reopening it, since onResume runs every time the app
+        // comes back to the foreground). Reassert whichever state is actually current afterward.
+        applyVideoToggleState(PodcastVideoToggle.isActive.value)
+        maybeAutoFullscreenForLandscape()
     }
 
     override fun onDestroyView() {
@@ -172,6 +323,11 @@ class PlayerAlbumCoverFragment : AbsMusicServiceFragment(R.layout.fragment_playe
         PreferenceManager.getDefaultSharedPreferences(requireContext())
             .unregisterOnSharedPreferenceChangeListener(this)
         binding.viewPager.removeOnPageChangeListener(this)
+        binding.videoSurfaceView.holder.removeCallback(videoSurfaceCallback)
+        if (PodcastVideoToggle.isActive.value) {
+            MusicPlayerRemote.setVideoSizeListener(null)
+            MusicPlayerRemote.setVideoSurface(null)
+        }
         progressViewUpdateHelper?.stop()
         _binding = null
     }
@@ -186,6 +342,12 @@ class PlayerAlbumCoverFragment : AbsMusicServiceFragment(R.layout.fragment_playe
             viewPager.setCurrentItem(MusicPlayerRemote.position, true)
         }
         updateLyrics()
+        // Reset per episode rather than carrying an on/off state across episode changes -- an
+        // episode with no video source obviously can't stay in video mode, and defaulting every
+        // new episode to audio-first (even a video-capable one) matches pre-toggle behavior.
+        if (PodcastVideoToggle.isActive.value) {
+            PodcastVideoToggle.setActive(false)
+        }
     }
 
     override fun onQueueChanged() {

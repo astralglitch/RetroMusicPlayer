@@ -54,6 +54,13 @@ class EpisodeDetailsViewModel(
     private val _downloadProgress = MutableLiveData<Int?>(null)
     val downloadProgress: LiveData<Int?> = _downloadProgress
 
+    /** Whether this episode is the one currently loaded in the player AND actively playing --
+     * distinct from merely being the current song (which could be paused). Drives the Play
+     * button showing "Pause" instead, and not restarting from 0 when this episode is already
+     * playing (see EpisodeDetailsFragment.play()). */
+    private val _isPlayingThisEpisode = MutableLiveData(false)
+    val isPlayingThisEpisode: LiveData<Boolean> = _isPlayingThisEpisode
+
     private var loadedPodcastFor: Long? = null
 
     init {
@@ -70,7 +77,10 @@ class EpisodeDetailsViewModel(
                 } else {
                     _downloadProgress.value = null
                 }
-                delay(1000)
+                _isPlayingThisEpisode.value = current != null &&
+                    MusicPlayerRemote.currentSong.episodeIdOrNull() == current.id &&
+                    MusicPlayerRemote.isPlaying
+                delay(500)
             }
         }
     }
@@ -111,6 +121,10 @@ class EpisodeDetailsViewModel(
 
     fun setNotes(notes: String?) {
         viewModelScope.launch { repository.setEpisodeNotes(episodeId, notes) }
+    }
+
+    fun setVideoSourceUrl(url: String?) {
+        viewModelScope.launch { repository.setEpisodeVideoSourceUrl(episodeId, url) }
     }
 
     private fun loadBookmarks() {

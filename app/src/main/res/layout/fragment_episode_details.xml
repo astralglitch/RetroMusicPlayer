@@ -99,6 +99,51 @@
                 app:layout_constraintTop_toBottomOf="@id/episodeTitle"
                 tools:text="01:26:21 · Sep 7, 2026" />
 
+            <LinearLayout
+                android:id="@+id/videoAvailableChip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginTop="6dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="4dp"
+                android:visibility="gone"
+                app:layout_constraintStart_toEndOf="@id/podcastThumbnailContainer"
+                app:layout_constraintTop_toBottomOf="@id/episodeMeta"
+                tools:visibility="visible">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginEnd="4dp"
+                    android:src="@drawable/ic_play_circle"
+                    app:tint="?attr/colorAccent" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/podcast_video_available"
+                    android:textAppearance="?attr/textAppearanceLabelSmall"
+                    android:textColor="?attr/colorAccent" />
+            </LinearLayout>
+
+            <!-- Bottom of whichever is taller: the fixed-height thumbnail, or the title/meta
+                 text block (which can grow past the thumbnail's height for a long/wrapping
+                 episode title). Everything below used to anchor to the thumbnail alone, so a
+                 long title's text would overflow underneath the Play/Download row instead of
+                 pushing it down. -->
+            <androidx.constraintlayout.widget.Barrier
+                android:id="@+id/headerBottomBarrier"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:barrierDirection="bottom"
+                app:constraint_referenced_ids="podcastThumbnailContainer,episodeMeta,videoAvailableChip" />
+
             <ProgressBar
                 android:id="@+id/episodeProgress"
                 style="?android:attr/progressBarStyleHorizontal"
@@ -111,7 +156,7 @@
                 android:visibility="gone"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/podcastThumbnailContainer"
+                app:layout_constraintTop_toBottomOf="@id/headerBottomBarrier"
                 tools:progress="40"
                 tools:visibility="visible" />
 
@@ -130,6 +175,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
+                    android:layout_gravity="center_vertical"
                     android:background="?attr/selectableItemBackground"
                     android:clickable="true"
                     android:focusable="true"
@@ -141,6 +187,7 @@
                     android:paddingBottom="16dp">
 
                     <code.name.monkey.retromusic.views.AccentIcon
+                        android:id="@+id/playActionIcon"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="12dp"
@@ -159,6 +206,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
+                    android:layout_gravity="center_vertical"
                     android:background="?attr/selectableItemBackground"
                     android:clickable="true"
                     android:focusable="true"
@@ -204,7 +252,6 @@
                 android:layout_marginTop="16dp"
                 android:layout_marginEnd="16dp"
                 android:layout_marginBottom="16dp"
-                android:autoLink="web"
                 android:textAppearance="?attr/textAppearanceBodyMedium"
                 android:textColor="?android:attr/textColorSecondary"
                 app:layout_constraintEnd_toEndOf="parent"

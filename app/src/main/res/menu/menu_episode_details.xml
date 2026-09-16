@@ -17,4 +17,8 @@
         android:id="@+id/action_edit_notes"
         android:title="@string/podcast_edit_notes" />
 
+    <item
+        android:id="@+id/action_video_link"
+        android:title="@string/podcast_video_link" />
+
 </menu>

@@ -32,6 +32,12 @@
         app:showAsAction="ifRoom" />
 
     <item
+        android:id="@+id/action_podcast_settings"
+        android:icon="@drawable/ic_settings"
+        android:title="@string/podcast_settings"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/action_podcast_target_queue"
         android:title="@string/podcast_target_queue"
         app:showAsAction="never" />

@@ -13,6 +13,29 @@
 
     </androidx.viewpager.widget.ViewPager>
 
+    <SurfaceView
+        android:id="@+id/videoSurfaceView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <ImageButton
+        android:id="@+id/videoFullscreenButton"
+        style="?attr/borderlessButtonStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="12dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/podcast_fullscreen"
+        android:padding="8dp"
+        android:src="@drawable/ic_fullscreen"
+        android:visibility="gone"
+        app:tint="@android:color/white"
+        tools:visibility="visible" />
+
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/cover_lyrics"
         android:name="code.name.monkey.retromusic.fragments.player.CoverLyricsFragment"

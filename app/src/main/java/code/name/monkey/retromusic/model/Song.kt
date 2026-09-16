@@ -35,7 +35,11 @@ open class Song(
     /** Feed-supplied cover art URL for a podcast episode (see `EpisodeExtensions.toSong`) --
      * null for a plain scanned track, which gets its art from MediaStore/embedded tags instead
      * (see `RetroGlideExtension.getSongModel`). */
-    open val artworkUrl: String? = null
+    open val artworkUrl: String? = null,
+    /** A separate video source for a podcast episode whose feed published one (see
+     * `EpisodeExtensions.toSong`) -- null for everything else. Carried on `Song` itself, same
+     * as [artworkUrl], so the audio<->video toggle doesn't need a DB round-trip at toggle time. */
+    open val videoUrl: String? = null
 ) : Parcelable {
 
 
@@ -60,6 +64,7 @@ open class Song(
         if (composer != other.composer) return false
         if (albumArtist != other.albumArtist) return false
         if (artworkUrl != other.artworkUrl) return false
+        if (videoUrl != other.videoUrl) return false
 
         return true
     }
@@ -79,6 +84,7 @@ open class Song(
         result = 31 * result + (composer?.hashCode() ?: 0)
         result = 31 * result + (albumArtist?.hashCode() ?: 0)
         result = 31 * result + (artworkUrl?.hashCode() ?: 0)
+        result = 31 * result + (videoUrl?.hashCode() ?: 0)
         return result
     }
 

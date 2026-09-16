@@ -33,7 +33,11 @@ data class ParsedEpisode(
     val enclosureUrl: String,
     val pubDate: Long,
     val durationMs: Long,
-    val description: String?
+    val description: String?,
+    /** Set when the enclosure's own `type` attribute starts with "video/" -- see
+     * PodcastRepository, which uses this to pick `MediaItemType.PODCAST_VIDEO` over
+     * `PODCAST_AUDIO`. */
+    val videoUrl: String? = null
 )
 
 /**
@@ -65,6 +69,7 @@ object PodcastFeedParser {
         var itemGuid: String? = null
         var itemTitle: String? = null
         var itemEnclosureUrl: String? = null
+        var itemVideoUrl: String? = null
         var itemPubDate: Long = 0
         var itemDurationMs: Long = 0
         var itemDescription: String? = null
@@ -80,6 +85,7 @@ object PodcastFeedParser {
                             itemGuid = null
                             itemTitle = null
                             itemEnclosureUrl = null
+                            itemVideoUrl = null
                             itemPubDate = 0
                             itemDurationMs = 0
                             itemDescription = null
@@ -102,6 +108,10 @@ object PodcastFeedParser {
 
                         "enclosure" -> if (inItem) {
                             itemEnclosureUrl = parser.getAttributeValue(null, "url")
+                            val type = parser.getAttributeValue(null, "type")
+                            if (type?.startsWith("video/") == true) {
+                                itemVideoUrl = itemEnclosureUrl
+                            }
                         }
 
                         "duration" -> if (inItem) itemDurationMs = parseItunesDuration(parser.nextTextSafe())
@@ -131,7 +141,8 @@ object PodcastFeedParser {
                                     enclosureUrl = url,
                                     pubDate = itemPubDate,
                                     durationMs = itemDurationMs,
-                                    description = itemDescription
+                                    description = itemDescription,
+                                    videoUrl = itemVideoUrl
                                 )
                             }
                         }

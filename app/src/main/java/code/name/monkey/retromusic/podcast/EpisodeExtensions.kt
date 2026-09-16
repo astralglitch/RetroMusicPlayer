@@ -51,6 +51,7 @@ fun EpisodeEntity.toSong(podcast: PodcastEntity): Song {
         artistName = podcast.title,
         composer = null,
         albumArtist = null,
-        artworkUrl = podcast.imageUrl
+        artworkUrl = podcast.imageUrl,
+        videoUrl = videoUrl
     )
 }

@@ -227,6 +227,7 @@ class PodcastRepository(
                 guid = parsed.guid,
                 title = parsed.title,
                 enclosureUrl = parsed.enclosureUrl,
+                videoUrl = parsed.videoUrl,
                 pubDate = parsed.pubDate,
                 durationMs = parsed.durationMs,
                 description = parsed.description,
@@ -245,12 +246,12 @@ class PodcastRepository(
         val rowIds = episodeDao.upsertEpisodes(entities)
         val newEpisodeIds = rowIds.filter { it != -1L }
 
-        // All podcast sources are audio-only for now (video is AGENTS.md goal #4, not built yet).
         entities.forEachIndexed { index, entity ->
             val episodeId = if (entity.id != 0L) entity.id else rowIds.getOrNull(index)?.takeIf { it != -1L }
             if (episodeId != null) {
+                val type = if (entity.videoUrl != null) MediaItemType.PODCAST_VIDEO else MediaItemType.PODCAST_AUDIO
                 mediaItemDao.upsertMediaItem(
-                    MediaItemEntity(songId = EPISODE_SONG_ID_OFFSET + episodeId, type = MediaItemType.PODCAST_AUDIO)
+                    MediaItemEntity(songId = EPISODE_SONG_ID_OFFSET + episodeId, type = type)
                 )
             }
         }
@@ -263,5 +264,16 @@ class PodcastRepository(
 
     suspend fun setEpisodeNotes(episodeId: Long, notes: String?) = withContext(Dispatchers.IO) {
         episodeDao.updateUserNotes(episodeId, notes)
+    }
+
+    suspend fun setEpisodeVideoSourceUrl(episodeId: Long, url: String?) = withContext(Dispatchers.IO) {
+        episodeDao.updateVideoSourceUrl(episodeId, url)
+    }
+
+    /** Only meaningful for an [PodcastSourceType.RSS] podcast -- changing where its feed is
+     * fetched from without re-subscribing (e.g. a show moved hosts). Caller should [refresh]
+     * afterward to pull episodes from the new URL. */
+    suspend fun setPodcastFeedUrl(podcastId: Long, feedUrl: String) = withContext(Dispatchers.IO) {
+        podcastDao.updateFeedUrl(podcastId, feedUrl)
     }
 }

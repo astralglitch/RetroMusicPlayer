@@ -118,6 +118,15 @@ class PodcastDetailsViewModel(
         }
     }
 
+    /** Only meaningful for an RSS-sourced podcast -- see PodcastRepository.setPodcastFeedUrl. */
+    fun setFeedUrl(feedUrl: String) {
+        viewModelScope.launch {
+            repository.setPodcastFeedUrl(podcastId, feedUrl)
+            _podcast.value = repository.podcastById(podcastId)
+            refresh()
+        }
+    }
+
     fun unsubscribe(onComplete: () -> Unit) {
         val podcast = _podcast.value ?: return
         viewModelScope.launch {

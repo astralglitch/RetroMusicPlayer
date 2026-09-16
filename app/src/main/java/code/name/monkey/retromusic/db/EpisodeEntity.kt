@@ -77,5 +77,20 @@ data class EpisodeEntity(
 
     /** Starred from the episode long-press menu -- backs the Podcasts-world Home "Favorites"
      * section. Separate from [played], same idea as e-mail starring vs. read state. */
-    val favorited: Boolean = false
+    val favorited: Boolean = false,
+
+    /** A separate video source for this episode, present when the feed's enclosure `type`
+     * starts with "video/" (see PodcastFeedParser). Drives the audio<->video toggle -- see
+     * `MediaItemType.PODCAST_VIDEO` and `EpisodeExtensions.toSong`. Directly playable, unlike
+     * [videoSourceUrl] below. */
+    @ColumnInfo(name = "video_url")
+    val videoUrl: String? = null,
+
+    /** A link to a video version of this episode that lives elsewhere -- a YouTube/Vimeo/etc.
+     * URL found in the show notes, or manually assigned by the user (see episode details' "Video
+     * link" menu action). Unlike [videoUrl], this is NOT directly playable by ExoPlayer -- it's a
+     * page URL, opened externally (browser/other app) for now. Resolving it into an actual
+     * in-app-playable stream (AGENTS.md goal #5, via NewPipeExtractor) is separate, later work. */
+    @ColumnInfo(name = "video_source_url")
+    val videoSourceUrl: String? = null
 )

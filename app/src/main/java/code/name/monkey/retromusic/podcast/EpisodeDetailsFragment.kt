@@ -22,6 +22,7 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.EditText
 import android.widget.FrameLayout
+import androidx.core.net.toUri
 import androidx.core.text.parseAsHtml
 import androidx.core.view.isVisible
 import androidx.navigation.fragment.findNavController
@@ -79,11 +80,27 @@ class EpisodeDetailsFragment : AbsMainActivityFragment(R.layout.fragment_episode
             binding.episodeProgress.isVisible = progress != null
             if (progress != null) binding.episodeProgress.progress = progress
         }
+        viewModel.isPlayingThisEpisode.observe(viewLifecycleOwner) { isPlaying ->
+            binding.playActionIcon.setImageResource(if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play_arrow)
+            binding.playLabel.setText(if (isPlaying) R.string.podcast_pause else R.string.podcast_play)
+        }
     }
 
     private fun showEpisode(episode: EpisodeEntity) {
         binding.episodeTitle.text = episode.title
-        binding.episodeDescription.text = episode.description?.parseAsHtml()?.toString()?.trim()
+        // Keep the parsed Spanned rather than flattening it to a plain String with .toString()
+        // -- that discarded every link/formatting span the HTML parse just produced, which is
+        // why a show note like a YouTube link rendered as inert plain text instead of a tappable
+        // link (AntennaPod renders these; this app wasn't, until now). Do NOT additionally run
+        // `Linkify.addLinks(TextView, ...)` after this -- that overload reads back `getText()`,
+        // and since our Spanned isn't a plain Spannable, it takes a copy-then-conditionally-
+        // reassign path that empirically dropped the just-parsed <a>-tag spans entirely (found by
+        // instrumenting each step: spans survived parseAsHtml() and trimSpanned(), and were gone
+        // only once that Linkify call had run). Bare URLs with no surrounding <a> tag (some feeds'
+        // show notes are just raw pasted links) won't get auto-linked without it, but that's a
+        // smaller gap than losing every proper HTML anchor.
+        binding.episodeDescription.text = episode.description?.parseAsHtml()?.trimSpanned()
+        binding.episodeDescription.movementMethod = android.text.method.LinkMovementMethod.getInstance()
         val duration = if (episode.durationMs > 0) {
             val totalSeconds = episode.durationMs / 1000
             String.format(
@@ -120,6 +137,9 @@ class EpisodeDetailsFragment : AbsMainActivityFragment(R.layout.fragment_episode
                 else -> R.string.podcast_download
             }
         )
+
+        binding.videoAvailableChip.isVisible = episode.videoUrl != null || episode.videoSourceUrl != null
+        binding.videoAvailableChip.setOnClickListener { showVideoAvailabilityInfo(episode) }
     }
 
     private fun showPodcast(podcast: PodcastEntity) {
@@ -132,6 +152,16 @@ class EpisodeDetailsFragment : AbsMainActivityFragment(R.layout.fragment_episode
 
     private fun play() {
         val episode = viewModel.episode.value ?: return
+        // Already the loaded episode -- toggle play/pause in place rather than restarting from
+        // 0, same as tapping any other already-playing item elsewhere in the app.
+        if (MusicPlayerRemote.currentSong.episodeIdOrNull() == episode.id) {
+            if (MusicPlayerRemote.isPlaying) {
+                MusicPlayerRemote.pauseSong()
+            } else {
+                MusicPlayerRemote.resumePlaying()
+            }
+            return
+        }
         val podcast = viewModel.podcast.value ?: return
         MusicPlayerRemote.openQueue(listOf(episode.toSong(podcast)), 0, true)
     }
@@ -171,8 +201,65 @@ class EpisodeDetailsFragment : AbsMainActivityFragment(R.layout.fragment_episode
                 showBookmarksDialog()
                 return true
             }
+
+            R.id.action_video_link -> {
+                showVideoLinkDialog()
+                return true
+            }
         }
         return false
+    }
+
+    /** Lets the user assign/edit a link to a video version of this episode (a YouTube/Vimeo/etc.
+     * page, found in show notes or entered by hand) and open it externally. Not directly played
+     * in-app yet -- see EpisodeEntity.videoSourceUrl's doc comment for why, and AGENTS.md goal #5
+     * for the planned in-app resolution/playback follow-up. */
+    private fun showVideoLinkDialog() {
+        val current = viewModel.episode.value ?: return
+        val input = EditText(requireContext()).apply {
+            setText(current.videoSourceUrl)
+            setHint(R.string.podcast_video_link_hint)
+        }
+        val padding = (16 * resources.displayMetrics.density).toInt()
+        val container = FrameLayout(requireContext()).apply {
+            setPadding(padding, padding / 2, padding, 0)
+            addView(input)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.podcast_video_link)
+            .setView(container)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                viewModel.setVideoSourceUrl(input.text?.toString()?.trim()?.ifBlank { null })
+            }
+            .setNeutralButton(R.string.podcast_open_in_browser) { _, _ ->
+                val url = current.videoSourceUrl
+                if (url.isNullOrBlank()) {
+                    requireContext().showToast(getString(R.string.podcast_video_link_none))
+                } else {
+                    startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, url.toUri()))
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    /** A small "video available" indicator, distinguishing where the video came from: directly
+     * playable ([EpisodeEntity.videoUrl], from the feed's own video enclosure) vs. an external
+     * link ([EpisodeEntity.videoSourceUrl], detected in show notes or entered by hand -- not
+     * auto-detection isn't built yet, see AGENTS.md goal #5, so today this only ever means
+     * "manually added"). Tapping shows which case applies and, for the external case, the link. */
+    private fun showVideoAvailabilityInfo(episode: EpisodeEntity) {
+        val message = when {
+            episode.videoUrl != null -> getString(R.string.podcast_video_source_feed)
+            episode.videoSourceUrl != null ->
+                getString(R.string.podcast_video_source_external, episode.videoSourceUrl)
+            else -> return
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.podcast_video_available)
+            .setMessage(message)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
     }
 
     private fun showBookmarksDialog() {

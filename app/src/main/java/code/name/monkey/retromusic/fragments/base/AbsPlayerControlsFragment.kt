@@ -266,10 +266,13 @@ abstract class AbsPlayerControlsFragment(@LayoutRes layout: Int) : AbsMusicServi
      * distinguishes it from a plain scanned track here.
      */
     open val currentMediaType: MediaItemType
-        get() = if (MusicPlayerRemote.currentSong.episodeIdOrNull() != null) {
-            MediaItemType.PODCAST_AUDIO
-        } else {
-            MediaItemType.MUSIC
+        get() {
+            val song = MusicPlayerRemote.currentSong
+            return when {
+                song.episodeIdOrNull() == null -> MediaItemType.MUSIC
+                song.videoUrl != null -> MediaItemType.PODCAST_VIDEO
+                else -> MediaItemType.PODCAST_AUDIO
+            }
         }
 
     /**

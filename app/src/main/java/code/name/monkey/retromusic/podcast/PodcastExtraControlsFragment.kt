@@ -17,6 +17,10 @@ package code.name.monkey.retromusic.podcast
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.View
+import androidx.core.view.isVisible
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.preference.PreferenceManager
 import code.name.monkey.retromusic.PLAYBACK_SPEED
 import code.name.monkey.retromusic.R
@@ -24,16 +28,25 @@ import code.name.monkey.retromusic.databinding.FragmentPodcastExtraControlsBindi
 import code.name.monkey.retromusic.fragments.base.AbsMusicServiceFragment
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.util.PreferenceUtil
+import kotlinx.coroutines.launch
 
 /**
- * Podcast-appropriate transport extras (skip 30s back / 10s forward, playback speed) hosted by
- * [code.name.monkey.retromusic.fragments.base.AbsPlayerControlsFragment] alongside the base
- * transport controls every [code.name.monkey.retromusic.db.MediaItemType] gets. The podcast name
- * itself isn't shown here -- the surrounding player screen's existing artist-name row already
- * carries it (see [code.name.monkey.retromusic.podcast.EpisodeExtensions.toSong], which sets
- * `artistName` to the podcast title). Skip increments and the speed cycle are fixed for now; the
- * project intent is for these to become per-user configurable, same as everything else here (see
- * docs/PODCAST_DESIGN.md).
+ * Podcast-appropriate transport extras (skip 30s back / 10s forward, playback speed, and --
+ * for an episode whose feed published a separate video enclosure, see
+ * [code.name.monkey.retromusic.db.EpisodeEntity.videoUrl] -- an audio<->video toggle button)
+ * hosted by [code.name.monkey.retromusic.fragments.base.AbsPlayerControlsFragment] alongside the
+ * base transport controls every [code.name.monkey.retromusic.db.MediaItemType] gets. The podcast
+ * name itself isn't shown here -- the surrounding player screen's existing artist-name row
+ * already carries it (see [code.name.monkey.retromusic.podcast.EpisodeExtensions.toSong], which
+ * sets `artistName` to the podcast title). Skip increments and the speed cycle are fixed for now;
+ * the project intent is for these to become per-user configurable, same as everything else here
+ * (see docs/PODCAST_DESIGN.md).
+ *
+ * This fragment only owns the toggle *button* -- the actual video surface lives in
+ * [code.name.monkey.retromusic.fragments.player.PlayerAlbumCoverFragment], replacing the album
+ * art there (same spot across every theme) rather than a small inline view here, per user
+ * feedback on the first version of this feature. The two fragments share state via
+ * [PodcastVideoToggle] since neither has a direct reference to the other.
  */
 class PodcastExtraControlsFragment : AbsMusicServiceFragment(R.layout.fragment_podcast_extra_controls) {
 
@@ -56,6 +69,21 @@ class PodcastExtraControlsFragment : AbsMusicServiceFragment(R.layout.fragment_p
         binding.skipBackButton.setOnClickListener { skip(-SKIP_BACK_MS) }
         binding.skipForwardButton.setOnClickListener { skip(SKIP_FORWARD_MS) }
         binding.speedButton.setOnClickListener { cycleSpeed() }
+
+        binding.videoToggleContainer.isVisible = MusicPlayerRemote.currentSong.videoUrl != null
+        binding.videoToggleButton.setOnClickListener {
+            PodcastVideoToggle.setActive(!PodcastVideoToggle.isActive.value)
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                PodcastVideoToggle.isActive.collect { active ->
+                    binding.videoToggleLabel.setText(
+                        if (active) R.string.podcast_watch_audio else R.string.podcast_watch_video
+                    )
+                }
+            }
+        }
 
         updateSpeedLabel()
     }

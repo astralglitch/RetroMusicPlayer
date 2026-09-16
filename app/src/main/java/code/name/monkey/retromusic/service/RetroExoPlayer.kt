@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.view.Surface
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -34,6 +35,7 @@ class RetroExoPlayer(context: Context) : AudioManagerPlayback(context), Player.L
         .setAudioAttributes(audioAttributes, false)
         .build()
     override var callbacks: PlaybackCallbacks? = null
+    private var videoSizeListener: ((width: Int, height: Int) -> Unit)? = null
 
     /**
      * @return True if the player is ready to go, false otherwise
@@ -242,6 +244,32 @@ class RetroExoPlayer(context: Context) : AudioManagerPlayback(context), Player.L
     }
 
     override fun setCrossFadeDuration(duration: Int) {}
+
+    override fun setVideoSurface(surface: Surface?) {
+        Handler(Looper.getMainLooper()).post {
+            player.setVideoSurface(surface)
+        }
+    }
+
+    override fun swapMediaSource(uri: Uri, resumePositionMs: Long) {
+        Handler(Looper.getMainLooper()).post {
+            val wasPlaying = player.isPlaying
+            player.setMediaItem(MediaItem.fromUri(uri))
+            player.prepare()
+            player.seekTo(resumePositionMs)
+            if (wasPlaying) player.play()
+        }
+    }
+
+    override fun setVideoSizeListener(listener: ((width: Int, height: Int) -> Unit)?) {
+        videoSizeListener = listener
+    }
+
+    override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+        if (videoSize.width > 0 && videoSize.height > 0) {
+            videoSizeListener?.invoke(videoSize.width, videoSize.height)
+        }
+    }
 
     override fun setPlaybackSpeedPitch(speed: Float, pitch: Float) {
         player.playbackParameters = PlaybackParameters(speed, pitch)

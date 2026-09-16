@@ -21,6 +21,7 @@ import android.database.Cursor
 import android.net.Uri
 import android.os.IBinder
 import android.provider.DocumentsContract
+import android.view.Surface
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import code.name.monkey.retromusic.R
@@ -267,6 +268,18 @@ object MusicPlayerRemote : KoinComponent {
         return if (musicService != null) {
             musicService!!.seek(millis)
         } else -1
+    }
+
+    fun setVideoSurface(surface: Surface?) {
+        musicService?.setVideoSurface(surface)
+    }
+
+    fun toggleEpisodeVideo(enable: Boolean) {
+        musicService?.toggleEpisodeVideo(enable)
+    }
+
+    fun setVideoSizeListener(listener: ((width: Int, height: Int) -> Unit)?) {
+        musicService?.setVideoSizeListener(listener)
     }
 
     fun cycleRepeatMode(): Boolean {

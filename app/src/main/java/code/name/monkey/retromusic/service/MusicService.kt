@@ -47,11 +47,13 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
+import android.view.Surface
 import android.widget.Toast
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.content.getSystemService
+import androidx.core.net.toUri
 import androidx.core.os.BundleCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.media.MediaBrowserServiceCompat
@@ -1033,6 +1035,25 @@ class MusicService : MediaBrowserServiceCompat(),
         } catch (e: Exception) {
             -1
         }
+    }
+
+    fun setVideoSurface(surface: Surface?) {
+        playbackManager.setVideoSurface(surface)
+    }
+
+    fun setVideoSizeListener(listener: ((width: Int, height: Int) -> Unit)?) {
+        playbackManager.setVideoSizeListener(listener)
+    }
+
+    /** Swaps the current episode's playback source between its audio and video URLs in place,
+     * preserving playback position -- see AGENTS.md goal #4 ("video/audio toggle for
+     * podcasts"). No-op if the current song isn't a video-capable episode. */
+    fun toggleEpisodeVideo(enable: Boolean) {
+        val song = currentSong
+        val uri = if (enable) song.videoUrl else song.data.takeIf { song.videoUrl != null }
+        if (uri == null) return
+        val resumePositionMs = songProgressMillis.toLong().coerceAtLeast(0)
+        playbackManager.swapMediaSource(uri.toUri(), resumePositionMs)
     }
 
     // to let other apps know whats playing. i.e. last.fm (scrobbling) or musixmatch

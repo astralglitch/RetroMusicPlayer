@@ -2,6 +2,14 @@
 
     <style name="Theme.RetroMusic" parent="Theme.RetroMusic.Base" />
 
+    <style name="FullScreenDialogStyle" parent="Theme.AppCompat.Dialog">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+
     <style name="Theme.RetroMusic.Light" parent="Theme.RetroMusic.Base.Light" />
 
     <style name="Theme.RetroMusic.Black" parent="Theme.RetroMusic.Base.Black" />
