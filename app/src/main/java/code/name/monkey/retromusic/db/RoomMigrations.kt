@@ -166,3 +166,28 @@ val MIGRATION_31_32 = object : Migration(31, 32) {
         )
     }
 }
+
+val MIGRATION_32_33 = object : Migration(32, 33) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            "CREATE TABLE IF NOT EXISTS `VideoLinkRuleEntity` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`podcast_id` INTEGER NOT NULL, " +
+                "`match_type` TEXT NOT NULL, " +
+                "`pattern` TEXT NOT NULL, " +
+                "`enabled` INTEGER NOT NULL, " +
+                "`priority` INTEGER NOT NULL)"
+        )
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_VideoLinkRuleEntity_podcast_id` ON `VideoLinkRuleEntity` (`podcast_id`)"
+        )
+        database.execSQL("ALTER TABLE `EpisodeEntity` ADD COLUMN `video_link_candidates` TEXT")
+        database.execSQL(
+            "ALTER TABLE `EpisodeEntity` ADD COLUMN `video_download_state` TEXT NOT NULL DEFAULT 'NOT_DOWNLOADED'"
+        )
+        database.execSQL("ALTER TABLE `EpisodeEntity` ADD COLUMN `video_download_id` INTEGER")
+        database.execSQL("ALTER TABLE `EpisodeEntity` ADD COLUMN `video_local_file_path` TEXT")
+        database.execSQL("ALTER TABLE `PodcastEntity` ADD COLUMN `play_preference` TEXT")
+        database.execSQL("ALTER TABLE `PodcastEntity` ADD COLUMN `auto_download_video` INTEGER")
+    }
+}

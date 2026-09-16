@@ -52,4 +52,12 @@ interface PodcastDao {
 
     @Query("UPDATE PodcastEntity SET feed_url = :feedUrl WHERE id = :podcastId")
     suspend fun updateFeedUrl(podcastId: Long, feedUrl: String)
+
+    /** Null means "use PreferenceUtil.globalPlayPreference" -- see PlayPreference. */
+    @Query("UPDATE PodcastEntity SET play_preference = :preference WHERE id = :podcastId")
+    suspend fun updatePlayPreference(podcastId: Long, preference: PlayPreference?)
+
+    /** Null means "use PreferenceUtil.globalAutoDownloadVideo". */
+    @Query("UPDATE PodcastEntity SET auto_download_video = :autoDownload WHERE id = :podcastId")
+    suspend fun updateAutoDownloadVideo(podcastId: Long, autoDownload: Boolean?)
 }

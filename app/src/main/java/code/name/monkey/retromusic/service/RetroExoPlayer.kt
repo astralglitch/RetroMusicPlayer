@@ -251,10 +251,17 @@ class RetroExoPlayer(context: Context) : AudioManagerPlayback(context), Player.L
         }
     }
 
-    override fun swapMediaSource(uri: Uri, resumePositionMs: Long) {
+    override fun swapMediaSource(uri: Uri, resumePositionMs: Long, isHls: Boolean) {
         Handler(Looper.getMainLooper()).post {
             val wasPlaying = player.isPlaying
-            player.setMediaItem(MediaItem.fromUri(uri))
+            if (isHls) {
+                val dataSourceFactory = androidx.media3.datasource.DefaultHttpDataSource.Factory()
+                val mediaSource = androidx.media3.exoplayer.hls.HlsMediaSource.Factory(dataSourceFactory)
+                    .createMediaSource(MediaItem.fromUri(uri))
+                player.setMediaSource(mediaSource)
+            } else {
+                player.setMediaItem(MediaItem.fromUri(uri))
+            }
             player.prepare()
             player.seekTo(resumePositionMs)
             if (wasPlaying) player.play()

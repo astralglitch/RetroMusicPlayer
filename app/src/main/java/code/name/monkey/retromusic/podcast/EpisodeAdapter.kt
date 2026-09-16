@@ -54,6 +54,11 @@ class EpisodeAdapter(
     /** Long-press -> "Remove from queue" -- only shown (see showMenu()) when non-null, i.e. on
      * QueueFragment's own list; meaningless anywhere else. */
     private val onRemoveFromQueue: ((EpisodeEntity) -> Unit)? = null,
+    /** Long-press -> "Download video" -- only shown for an episode with a video available and
+     * not already video-downloaded. A no-op default since not every list wires this up. */
+    private val onDownloadVideo: (EpisodeEntity) -> Unit = {},
+    /** Long-press -> "Delete video download" -- only shown once the video is downloaded. */
+    private val onDeleteVideoDownload: (EpisodeEntity) -> Unit = {},
     /** When non-null, a small podcast-cover thumbnail is shown on each row (looked up by
      * episode.podcastId) -- for cross-podcast lists like the Podcasts Home sections, where it's
      * not otherwise obvious which show an episode belongs to. Null in single-podcast contexts
@@ -124,6 +129,11 @@ class EpisodeAdapter(
                 episode.downloadState != EpisodeDownloadState.DOWNLOADED
             popupMenu.menu.findItem(R.id.action_episode_remove_from_queue).isVisible =
                 onRemoveFromQueue != null
+            val hasVideo = episode.videoUrl != null || episode.videoSourceUrl != null
+            popupMenu.menu.findItem(R.id.action_episode_download_video).isVisible =
+                hasVideo && episode.videoDownloadState != EpisodeDownloadState.DOWNLOADED
+            popupMenu.menu.findItem(R.id.action_episode_delete_video_download).isVisible =
+                episode.videoDownloadState == EpisodeDownloadState.DOWNLOADED
             popupMenu.setOnMenuItemClickListener { item: MenuItem ->
                 when (item.itemId) {
                     R.id.action_episode_toggle_played -> onTogglePlayed(episode, !episode.played)
@@ -132,6 +142,8 @@ class EpisodeAdapter(
                     R.id.action_episode_stream -> onStream(episode)
                     R.id.action_episode_add_to_queue -> onAddToQueue(episode)
                     R.id.action_episode_remove_from_queue -> onRemoveFromQueue?.invoke(episode)
+                    R.id.action_episode_download_video -> onDownloadVideo(episode)
+                    R.id.action_episode_delete_video_download -> onDeleteVideoDownload(episode)
                     else -> return@setOnMenuItemClickListener false
                 }
                 true
@@ -149,6 +161,8 @@ class EpisodeAdapter(
             } else {
                 binding.podcastThumbnailContainer.isVisible = false
             }
+
+            binding.videoIndicator.isVisible = episode.videoUrl != null || episode.videoSourceUrl != null
 
             binding.episodeTitle.text = episode.title
             val date = if (episode.pubDate > 0) {

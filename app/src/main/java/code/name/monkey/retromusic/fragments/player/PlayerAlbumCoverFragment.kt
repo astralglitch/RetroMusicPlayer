@@ -51,6 +51,8 @@ import code.name.monkey.retromusic.model.lyrics.Lyrics
 import code.name.monkey.retromusic.podcast.PodcastVideoFullscreen
 import code.name.monkey.retromusic.podcast.PodcastVideoFullscreenDialogFragment
 import code.name.monkey.retromusic.podcast.PodcastVideoToggle
+import code.name.monkey.retromusic.podcast.VideoAspectMode
+import code.name.monkey.retromusic.podcast.applyVideoAspect as applySharedVideoAspect
 import code.name.monkey.retromusic.transform.CarousalPagerTransformer
 import code.name.monkey.retromusic.transform.ParallaxPagerTransformer
 import code.name.monkey.retromusic.util.CoverLyricsType
@@ -118,17 +120,12 @@ class PlayerAlbumCoverFragment : AbsMusicServiceFragment(R.layout.fragment_playe
 
     /** Resizes the video surface to fit the available width, letterboxed to the video's own
      * aspect ratio (podcast thumbnails tend to be square/portrait, so "fit width" reads better
-     * as a default than stretching to fill the whole square cover area). VLC-style fit/zoom/
-     * stretch options are a natural follow-up, not built yet. */
+     * as a default than stretching to fill the whole square cover area). Always [VideoAspectMode.FIT]
+     * here -- unlike the fullscreen dialog, there's no crop toggle inline, matching "consistent
+     * with where the album art normally sits." */
     private fun applyVideoAspect(videoWidth: Int, videoHeight: Int) {
         val binding = _binding ?: return
-        val parentWidth = (binding.videoSurfaceView.parent as? View)?.width ?: return
-        if (parentWidth <= 0) return
-        val fitHeight = (parentWidth.toFloat() * videoHeight / videoWidth).toInt().coerceAtLeast(1)
-        binding.videoSurfaceView.layoutParams = binding.videoSurfaceView.layoutParams.apply {
-            width = ViewGroup.LayoutParams.MATCH_PARENT
-            height = fitHeight
-        }
+        applySharedVideoAspect(binding.videoSurfaceView, videoWidth, videoHeight, VideoAspectMode.FIT)
     }
 
     private fun applyVideoToggleState(active: Boolean) {

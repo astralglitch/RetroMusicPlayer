@@ -137,6 +137,9 @@ class QueueFragment : AbsMainActivityFragment(R.layout.fragment_episode_list) {
             val startIndex = episodes.indexOf(target).coerceAtLeast(0)
             if (songs.isNotEmpty()) {
                 MusicPlayerRemote.openQueue(songs, startIndex, true)
+                podcastCache[target.podcastId]?.let {
+                    viewLifecycleOwner.lifecycleScope.activateVideoIfPreferred(target, it)
+                }
             }
         }
     }

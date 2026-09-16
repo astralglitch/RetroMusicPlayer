@@ -14,6 +14,12 @@
         android:id="@+id/action_episode_delete_download"
         android:title="@string/podcast_delete_download" />
     <item
+        android:id="@+id/action_episode_download_video"
+        android:title="@string/podcast_download_video" />
+    <item
+        android:id="@+id/action_episode_delete_video_download"
+        android:title="@string/podcast_delete_video_download" />
+    <item
         android:id="@+id/action_episode_add_to_queue"
         android:title="@string/podcast_add_to_queue" />
     <item

@@ -63,6 +63,100 @@ class EpisodeDownloadManager(
         )
     }
 
+    sealed class EnqueueVideoResult {
+        data object Enqueued : EnqueueVideoResult()
+        data object NoVideoAvailable : EnqueueVideoResult()
+
+        /** The only video source is an external link that resolved to an HLS stream --
+         * `DownloadManager` can't fetch a segmented stream, only a single progressive file. */
+        data object UnsupportedStreamType : EnqueueVideoResult()
+        data class ResolutionFailed(val reason: String) : EnqueueVideoResult()
+    }
+
+    /** Downloads the *video* portion of an episode as a file separate from any audio download
+     * (see [deleteVideoDownload] for the matching "keep the audio, drop just the video" action).
+     * A feed-direct [EpisodeEntity.videoUrl] enclosure downloads directly; an external
+     * [EpisodeEntity.videoSourceUrl] link is first resolved via [VideoLinkResolver] to a real
+     * stream URL -- only a progressive (non-HLS) result can be downloaded this way. */
+    suspend fun enqueueVideo(episode: EpisodeEntity): EnqueueVideoResult {
+        val downloadUrl = when {
+            episode.videoUrl != null -> episode.videoUrl
+            episode.videoSourceUrl != null -> {
+                when (val result = VideoLinkResolver.resolve(episode.videoSourceUrl)) {
+                    is VideoLinkResolver.Result.Success ->
+                        if (result.isHls) return EnqueueVideoResult.UnsupportedStreamType else result.streamUrl
+
+                    is VideoLinkResolver.Result.UnsupportedSite -> return EnqueueVideoResult.UnsupportedStreamType
+                    is VideoLinkResolver.Result.ResolutionFailed ->
+                        return EnqueueVideoResult.ResolutionFailed(result.reason)
+                }
+            }
+
+            else -> return EnqueueVideoResult.NoVideoAvailable
+        }
+
+        val targetFile = File(downloadsDir(), "${episode.id}_video.media")
+        val request = DownloadManager.Request(downloadUrl.toUri())
+            .setTitle(episode.title)
+            .setDestinationUri(Uri.fromFile(targetFile))
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_ONLY_COMPLETION)
+
+        val downloadId = downloadManager.enqueue(request)
+        episodeDao.upsertEpisode(
+            episode.copy(
+                videoDownloadState = EpisodeDownloadState.DOWNLOADING,
+                videoDownloadId = downloadId,
+                videoLocalFilePath = null
+            )
+        )
+        return EnqueueVideoResult.Enqueued
+    }
+
+    /** Removes just the video download, leaving [EpisodeEntity.localFilePath]/[EpisodeEntity.downloadState]
+     * (the audio side) untouched -- the "delete only the video, keep the audio" action. */
+    suspend fun deleteVideoDownload(episode: EpisodeEntity) {
+        episode.videoDownloadId?.let { downloadManager.remove(it) }
+        episode.videoLocalFilePath?.let { File(it).delete() }
+        episodeDao.upsertEpisode(
+            episode.copy(
+                videoDownloadState = EpisodeDownloadState.NOT_DOWNLOADED,
+                videoDownloadId = null,
+                videoLocalFilePath = null
+            )
+        )
+    }
+
+    /** Video-download counterpart to [reconcileInFlightDownloads] -- same self-healing reasoning,
+     * a separate pass since video downloads track their own state/id columns. */
+    suspend fun reconcileInFlightVideoDownloads(episodes: List<EpisodeEntity>) {
+        episodes
+            .filter { it.videoDownloadState == EpisodeDownloadState.DOWNLOADING && it.videoDownloadId != null }
+            .forEach { reconcileVideo(it.videoDownloadId!!) }
+    }
+
+    private suspend fun reconcileVideo(downloadId: Long) {
+        val episode = episodeDao.episodeForVideoDownloadId(downloadId) ?: return
+        val query = DownloadManager.Query().setFilterById(downloadId)
+        downloadManager.query(query).use { cursor ->
+            if (!cursor.moveToFirst()) return
+            val statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
+            val localUriIndex = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI)
+            val status = cursor.getInt(statusIndex)
+            if (status == DownloadManager.STATUS_PENDING || status == DownloadManager.STATUS_RUNNING) {
+                return
+            }
+            val succeeded = status == DownloadManager.STATUS_SUCCESSFUL
+            val localPath = if (succeeded) cursor.getString(localUriIndex)?.toUri()?.path else null
+
+            episodeDao.upsertEpisode(
+                episode.copy(
+                    videoDownloadState = if (succeeded) EpisodeDownloadState.DOWNLOADED else EpisodeDownloadState.FAILED,
+                    videoLocalFilePath = localPath
+                )
+            )
+        }
+    }
+
     /** Registers the completion receiver; call from a long-lived scope (e.g. Application.onCreate). */
     fun registerReceiver(scope: CoroutineScope) {
         ContextCompat.registerReceiver(
@@ -71,7 +165,10 @@ class EpisodeDownloadManager(
                 override fun onReceive(ctx: Context, intent: Intent) {
                     val downloadId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
                     if (downloadId == -1L) return
-                    scope.launch(Dispatchers.IO) { reconcile(downloadId) }
+                    scope.launch(Dispatchers.IO) {
+                        reconcile(downloadId)
+                        reconcileVideo(downloadId)
+                    }
                 }
             },
             IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),

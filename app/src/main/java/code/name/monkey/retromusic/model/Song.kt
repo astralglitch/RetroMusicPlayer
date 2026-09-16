@@ -39,7 +39,13 @@ open class Song(
     /** A separate video source for a podcast episode whose feed published one (see
      * `EpisodeExtensions.toSong`) -- null for everything else. Carried on `Song` itself, same
      * as [artworkUrl], so the audio<->video toggle doesn't need a DB round-trip at toggle time. */
-    open val videoUrl: String? = null
+    open val videoUrl: String? = null,
+    /** An unresolved video *page* link for a podcast episode (e.g. a YouTube URL manually
+     * assigned in episode details) -- unlike [videoUrl], NOT directly playable, needs
+     * `VideoLinkResolver` first. Carried here (rather than requiring a DB round-trip) so the
+     * audio<->video toggle knows a video is available at all before it's been resolved. See
+     * `EpisodeExtensions.toSong` and `VideoLinkResolver`. */
+    open val videoSourceUrl: String? = null
 ) : Parcelable {
 
 
@@ -65,6 +71,7 @@ open class Song(
         if (albumArtist != other.albumArtist) return false
         if (artworkUrl != other.artworkUrl) return false
         if (videoUrl != other.videoUrl) return false
+        if (videoSourceUrl != other.videoSourceUrl) return false
 
         return true
     }
@@ -85,6 +92,7 @@ open class Song(
         result = 31 * result + (albumArtist?.hashCode() ?: 0)
         result = 31 * result + (artworkUrl?.hashCode() ?: 0)
         result = 31 * result + (videoUrl?.hashCode() ?: 0)
+        result = 31 * result + (videoSourceUrl?.hashCode() ?: 0)
         return result
     }
 

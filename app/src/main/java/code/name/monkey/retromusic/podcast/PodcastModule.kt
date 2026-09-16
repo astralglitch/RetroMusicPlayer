@@ -39,7 +39,7 @@ val podcastModule = module {
     }
 
     single {
-        PodcastRepository(androidContext(), get(PODCAST_HTTP_CLIENT), get(), get(), get(), get())
+        PodcastRepository(androidContext(), get(PODCAST_HTTP_CLIENT), get(), get(), get(), get(), get())
     }
 
     single {
@@ -72,5 +72,9 @@ val podcastModule = module {
 
     viewModel {
         QueueViewModel(get())
+    }
+
+    viewModel { (podcastId: Long) ->
+        VideoLinkRulesViewModel(get(), podcastId)
     }
 }

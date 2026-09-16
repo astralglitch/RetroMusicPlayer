@@ -200,8 +200,8 @@ class PlaybackManager(val context: Context) {
         playback?.setVideoSurface(surface)
     }
 
-    fun swapMediaSource(uri: Uri, resumePositionMs: Long) {
-        playback?.swapMediaSource(uri, resumePositionMs)
+    fun swapMediaSource(uri: Uri, resumePositionMs: Long, isHls: Boolean = false) {
+        playback?.swapMediaSource(uri, resumePositionMs, isHls)
     }
 
     fun setVideoSizeListener(listener: ((width: Int, height: Int) -> Unit)?) {

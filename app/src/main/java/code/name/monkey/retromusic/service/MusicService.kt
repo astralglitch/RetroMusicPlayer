@@ -120,6 +120,7 @@ import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Runnable
 import code.name.monkey.retromusic.podcast.EpisodePositionSaver
+import code.name.monkey.retromusic.podcast.VideoLinkResolver
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -1046,14 +1047,28 @@ class MusicService : MediaBrowserServiceCompat(),
     }
 
     /** Swaps the current episode's playback source between its audio and video URLs in place,
-     * preserving playback position -- see AGENTS.md goal #4 ("video/audio toggle for
-     * podcasts"). No-op if the current song isn't a video-capable episode. */
+     * preserving playback position (see docs/PODCAST_DESIGN.md "Podcast video"). Prefers a direct
+     * feed-supplied [code.name.monkey.retromusic.model.Song.videoUrl]; for an episode whose only
+     * video is an external link ([code.name.monkey.retromusic.model.Song.videoSourceUrl]), uses
+     * whatever `VideoLinkResolver` already has cached for it -- resolution itself happens in the
+     * UI layer (see `PodcastExtraControlsFragment`/`EpisodeDetailsFragment`) before this is ever
+     * called with `enable = true`, so this stays synchronous. No-op if the current song isn't
+     * video-capable, or a source-link episode hasn't been resolved (yet/anymore). */
     fun toggleEpisodeVideo(enable: Boolean) {
         val song = currentSong
-        val uri = if (enable) song.videoUrl else song.data.takeIf { song.videoUrl != null }
-        if (uri == null) return
         val resumePositionMs = songProgressMillis.toLong().coerceAtLeast(0)
-        playbackManager.swapMediaSource(uri.toUri(), resumePositionMs)
+        if (enable) {
+            val directUri = song.videoUrl?.toUri()
+            if (directUri != null) {
+                playbackManager.swapMediaSource(directUri, resumePositionMs, isHls = false)
+                return
+            }
+            val cached = song.videoSourceUrl?.let { VideoLinkResolver.peekCached(it) } ?: return
+            playbackManager.swapMediaSource(cached.streamUrl.toUri(), resumePositionMs, cached.isHls)
+        } else {
+            if (song.videoUrl == null && song.videoSourceUrl == null) return
+            playbackManager.swapMediaSource(song.data.toUri(), resumePositionMs, isHls = false)
+        }
     }
 
     // to let other apps know whats playing. i.e. last.fm (scrobbling) or musixmatch

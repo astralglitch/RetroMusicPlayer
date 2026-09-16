@@ -29,6 +29,19 @@
             android:src="@drawable/ic_close"
             app:tint="@android:color/white" />
 
+        <ImageButton
+            android:id="@+id/fullscreenAspectButton"
+            style="?attr/borderlessButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:layout_margin="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/podcast_video_aspect_toggle"
+            android:padding="12dp"
+            android:src="@drawable/ic_aspect_ratio"
+            app:tint="@android:color/white" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -47,7 +60,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/podcast_skip_back"
                 android:padding="12dp"
-                android:src="@drawable/ic_history"
+                android:src="@drawable/ic_undo"
                 app:tint="@android:color/white" />
 
             <ImageButton

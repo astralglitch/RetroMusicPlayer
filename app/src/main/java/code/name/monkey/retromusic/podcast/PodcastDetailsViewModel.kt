@@ -22,6 +22,7 @@ import androidx.lifecycle.viewModelScope
 import code.name.monkey.retromusic.db.EpisodeDownloadState
 import code.name.monkey.retromusic.db.EpisodeDownloadState.NOT_DOWNLOADED
 import code.name.monkey.retromusic.db.EpisodeEntity
+import code.name.monkey.retromusic.db.PlayPreference
 import code.name.monkey.retromusic.db.PodcastEntity
 import code.name.monkey.retromusic.db.QueueEntity
 import kotlinx.coroutines.delay
@@ -83,10 +84,23 @@ class PodcastDetailsViewModel(
         }
     }
 
+    fun downloadVideo(episode: EpisodeEntity, onResult: (EpisodeDownloadManager.EnqueueVideoResult) -> Unit) {
+        viewModelScope.launch {
+            onResult(downloadManager.enqueueVideo(episode))
+        }
+    }
+
+    fun deleteVideoDownload(episode: EpisodeEntity) {
+        viewModelScope.launch {
+            downloadManager.deleteVideoDownload(episode)
+        }
+    }
+
     /** Self-heals any episode stuck showing "Downloading…" -- see EpisodeDownloadManager docs. */
     fun reconcileDownloads() {
         viewModelScope.launch {
             downloadManager.reconcileInFlightDownloads(episodes.value.orEmpty())
+            downloadManager.reconcileInFlightVideoDownloads(episodes.value.orEmpty())
         }
     }
 
@@ -127,12 +141,29 @@ class PodcastDetailsViewModel(
         }
     }
 
+    /** Null means "use PreferenceUtil.globalPlayPreference" -- see PodcastEntity.playPreference. */
+    fun setPlayPreference(preference: PlayPreference?) {
+        viewModelScope.launch {
+            repository.setPodcastPlayPreference(podcastId, preference)
+            _podcast.value = repository.podcastById(podcastId)
+        }
+    }
+
+    /** Null means "use PreferenceUtil.globalAutoDownloadVideo". */
+    fun setAutoDownloadVideo(autoDownload: Boolean?) {
+        viewModelScope.launch {
+            repository.setPodcastAutoDownloadVideo(podcastId, autoDownload)
+            _podcast.value = repository.podcastById(podcastId)
+        }
+    }
+
     fun unsubscribe(onComplete: () -> Unit) {
         val podcast = _podcast.value ?: return
         viewModelScope.launch {
-            episodes.value.orEmpty()
-                .filter { it.downloadState != NOT_DOWNLOADED }
-                .forEach { downloadManager.deleteDownload(it) }
+            episodes.value.orEmpty().forEach { episode ->
+                if (episode.downloadState != NOT_DOWNLOADED) downloadManager.deleteDownload(episode)
+                if (episode.videoDownloadState != NOT_DOWNLOADED) downloadManager.deleteVideoDownload(episode)
+            }
             repository.unsubscribe(podcast)
             onComplete()
         }

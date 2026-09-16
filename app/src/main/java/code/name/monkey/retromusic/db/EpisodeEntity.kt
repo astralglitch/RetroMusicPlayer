@@ -87,10 +87,31 @@ data class EpisodeEntity(
     val videoUrl: String? = null,
 
     /** A link to a video version of this episode that lives elsewhere -- a YouTube/Vimeo/etc.
-     * URL found in the show notes, or manually assigned by the user (see episode details' "Video
-     * link" menu action). Unlike [videoUrl], this is NOT directly playable by ExoPlayer -- it's a
-     * page URL, opened externally (browser/other app) for now. Resolving it into an actual
-     * in-app-playable stream (AGENTS.md goal #5, via NewPipeExtractor) is separate, later work. */
+     * URL manually assigned by the user (see episode details' "Video link" menu action). Unlike
+     * [videoUrl], this is NOT directly playable by ExoPlayer -- it's a page URL. When possible,
+     * it's resolved to a real stream via NewPipeExtractor and played in-app (see
+     * `code.name.monkey.retromusic.podcast.VideoLinkResolver`); when NewPipeExtractor doesn't
+     * support the site (e.g. Vimeo) or resolution fails, it falls back to opening externally. See
+     * docs/PODCAST_DESIGN.md "Podcast video, stage 2". */
     @ColumnInfo(name = "video_source_url")
-    val videoSourceUrl: String? = null
+    val videoSourceUrl: String? = null,
+
+    /** Extra video links matched by `VideoLinkMatcher` in the same episode's show notes, beyond
+     * the one already stored in [videoSourceUrl] -- JSON-encoded (Gson) list of URL strings, null
+     * when there were none. Not surfaced in a dedicated UI yet; kept so a future "switch primary
+     * video" feature doesn't need to re-scan already-fetched episodes. */
+    @ColumnInfo(name = "video_link_candidates")
+    val videoLinkCandidates: String? = null,
+
+    /** Download state for the *video* file, independent of [downloadState] (audio) -- lets a
+     * user keep the audio download and delete just the video, or vice versa. Populated by
+     * `EpisodeDownloadManager.enqueueVideo`/`deleteVideoDownload`. */
+    @ColumnInfo(name = "video_download_state", defaultValue = "NOT_DOWNLOADED")
+    val videoDownloadState: EpisodeDownloadState = EpisodeDownloadState.NOT_DOWNLOADED,
+
+    @ColumnInfo(name = "video_download_id")
+    val videoDownloadId: Long? = null,
+
+    @ColumnInfo(name = "video_local_file_path")
+    val videoLocalFilePath: String? = null
 )

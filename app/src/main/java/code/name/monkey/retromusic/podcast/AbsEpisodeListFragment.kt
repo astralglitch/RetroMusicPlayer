@@ -23,6 +23,7 @@ import androidx.annotation.StringRes
 import androidx.core.os.bundleOf
 import androidx.core.view.GravityCompat
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import code.name.monkey.retromusic.R
@@ -98,6 +99,7 @@ abstract class AbsEpisodeListFragment(
     private fun streamEpisode(episode: EpisodeEntity) {
         val podcast = viewModel.podcasts.value?.firstOrNull { it.id == episode.podcastId } ?: return
         MusicPlayerRemote.openQueue(listOf(episode.toSong(podcast)), 0, true)
+        viewLifecycleOwner.lifecycleScope.activateVideoIfPreferred(episode, podcast)
     }
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {}

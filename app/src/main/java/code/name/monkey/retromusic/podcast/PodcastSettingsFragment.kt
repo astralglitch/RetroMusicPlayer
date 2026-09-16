@@ -30,10 +30,12 @@ import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.FragmentPodcastSettingsBinding
 import code.name.monkey.retromusic.databinding.ItemPodcastSettingBinding
 import code.name.monkey.retromusic.databinding.ItemPodcastSettingHeaderBinding
+import code.name.monkey.retromusic.db.PlayPreference
 import code.name.monkey.retromusic.db.PodcastEntity
 import code.name.monkey.retromusic.db.PodcastSourceType
 import code.name.monkey.retromusic.extensions.showToast
 import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
+import code.name.monkey.retromusic.util.PreferenceUtil
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.koin.core.parameter.parametersOf
 
@@ -62,7 +64,7 @@ class PodcastSettingsFragment : AbsMainActivityFragment(R.layout.fragment_podcas
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentPodcastSettingsBinding.bind(view)
         mainActivity.setSupportActionBar(binding.toolbar)
-        binding.toolbar.title = " "
+        binding.toolbar.title = getString(R.string.podcast_settings)
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
 
         viewModel.podcast.observe(viewLifecycleOwner) { podcast ->
@@ -71,7 +73,7 @@ class PodcastSettingsFragment : AbsMainActivityFragment(R.layout.fragment_podcas
     }
 
     private fun buildSettingsList(podcast: PodcastEntity) {
-        binding.settingsSubtitle.text = podcast.title
+        binding.toolbar.subtitle = podcast.title
         binding.settingsContainer.removeAllViews()
         val inflater = LayoutInflater.from(requireContext())
 
@@ -137,6 +139,13 @@ class PodcastSettingsFragment : AbsMainActivityFragment(R.layout.fragment_podcas
             enabled = false,
             onClick = ::showComingSoon
         )
+        addItem(
+            inflater,
+            icon = R.drawable.ic_play_circle,
+            title = getString(R.string.podcast_settings_play_preference),
+            subtitle = playPreferenceSubtitle(podcast.playPreference),
+            onClick = { showPlayPreferenceDialog(podcast.playPreference) }
+        )
 
         addHeader(inflater, R.string.podcast_settings_section_automation)
         addItem(
@@ -151,12 +160,131 @@ class PodcastSettingsFragment : AbsMainActivityFragment(R.layout.fragment_podcas
         )
         addItem(
             inflater,
-            icon = R.drawable.ic_play_circle,
-            title = getString(R.string.podcast_settings_video_detection),
-            subtitle = getString(R.string.podcast_settings_coming_soon),
-            enabled = false,
-            onClick = ::showComingSoon
+            icon = R.drawable.ic_videocam,
+            title = getString(R.string.podcast_settings_video_link_rules),
+            subtitle = getString(R.string.podcast_settings_video_link_rules_subtitle),
+            onClick = {
+                findNavController().navigate(
+                    PodcastSettingsFragmentDirections
+                        .actionPodcastSettingsFragmentToVideoLinkRulesFragment(podcast.id)
+                )
+            }
         )
+        addItem(
+            inflater,
+            icon = R.drawable.ic_download,
+            title = getString(R.string.podcast_settings_auto_download_video),
+            subtitle = autoDownloadVideoSubtitle(podcast.autoDownloadVideo),
+            onClick = { showAutoDownloadVideoDialog(podcast.autoDownloadVideo) }
+        )
+        addItem(
+            inflater,
+            icon = R.drawable.ic_play_circle,
+            title = getString(R.string.podcast_settings_video_inapp_playback),
+            subtitle = getString(R.string.podcast_settings_video_inapp_playback_subtitle),
+            showSwitch = true,
+            switchChecked = PreferenceUtil.playVideoLinksInApp,
+            onSwitchToggle = { checked -> PreferenceUtil.playVideoLinksInApp = checked }
+        )
+        addItem(
+            inflater,
+            icon = R.drawable.ic_play_circle,
+            title = getString(R.string.podcast_settings_play_preference_global_title),
+            subtitle = getString(R.string.podcast_settings_global_play_preference_subtitle),
+            onClick = { showGlobalPlayPreferenceDialog() }
+        )
+        addItem(
+            inflater,
+            icon = R.drawable.ic_download,
+            title = getString(R.string.podcast_settings_auto_download_video_global_title),
+            subtitle = getString(R.string.podcast_settings_global_auto_download_video_subtitle),
+            showSwitch = true,
+            switchChecked = PreferenceUtil.globalAutoDownloadVideo,
+            onSwitchToggle = { checked -> PreferenceUtil.globalAutoDownloadVideo = checked }
+        )
+    }
+
+    private fun playPreferenceSubtitle(preference: PlayPreference?) = when (preference) {
+        null -> getString(R.string.podcast_settings_play_preference_use_global)
+        PlayPreference.AUDIO_FIRST -> getString(R.string.podcast_settings_play_preference_audio_first)
+        PlayPreference.VIDEO_FIRST -> getString(R.string.podcast_settings_play_preference_video_first)
+    }
+
+    private fun showPlayPreferenceDialog(current: PlayPreference?) {
+        val options = arrayOf(
+            getString(R.string.podcast_settings_play_preference_use_global),
+            getString(R.string.podcast_settings_play_preference_audio_first),
+            getString(R.string.podcast_settings_play_preference_video_first)
+        )
+        val checkedIndex = when (current) {
+            null -> 0
+            PlayPreference.AUDIO_FIRST -> 1
+            PlayPreference.VIDEO_FIRST -> 2
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.podcast_settings_play_preference)
+            .setSingleChoiceItems(options, checkedIndex) { dialog, which ->
+                viewModel.setPlayPreference(
+                    when (which) {
+                        1 -> PlayPreference.AUDIO_FIRST
+                        2 -> PlayPreference.VIDEO_FIRST
+                        else -> null
+                    }
+                )
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showGlobalPlayPreferenceDialog() {
+        val options = arrayOf(
+            getString(R.string.podcast_settings_play_preference_audio_first),
+            getString(R.string.podcast_settings_play_preference_video_first)
+        )
+        val checkedIndex = if (PreferenceUtil.globalPlayPreference == PlayPreference.VIDEO_FIRST) 1 else 0
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.podcast_settings_play_preference)
+            .setSingleChoiceItems(options, checkedIndex) { dialog, which ->
+                PreferenceUtil.globalPlayPreference =
+                    if (which == 1) PlayPreference.VIDEO_FIRST else PlayPreference.AUDIO_FIRST
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun autoDownloadVideoSubtitle(autoDownload: Boolean?) = when (autoDownload) {
+        null -> getString(R.string.podcast_settings_auto_download_video_use_global)
+        true -> getString(R.string.podcast_settings_auto_download_video_on)
+        false -> getString(R.string.podcast_settings_auto_download_video_off)
+    }
+
+    private fun showAutoDownloadVideoDialog(current: Boolean?) {
+        val options = arrayOf(
+            getString(R.string.podcast_settings_auto_download_video_use_global),
+            getString(R.string.podcast_settings_auto_download_video_on),
+            getString(R.string.podcast_settings_auto_download_video_off)
+        )
+        val checkedIndex = when (current) {
+            null -> 0
+            true -> 1
+            false -> 2
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.podcast_settings_auto_download_video)
+            .setSingleChoiceItems(options, checkedIndex) { dialog, which ->
+                viewModel.setAutoDownloadVideo(
+                    when (which) {
+                        1 -> true
+                        2 -> false
+                        else -> null
+                    }
+                )
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun showComingSoon() {
@@ -177,21 +305,28 @@ class PodcastSettingsFragment : AbsMainActivityFragment(R.layout.fragment_podcas
         enabled: Boolean = true,
         showSwitch: Boolean = false,
         switchChecked: Boolean = false,
-        onClick: (() -> Unit)? = null
+        onClick: (() -> Unit)? = null,
+        onSwitchToggle: ((Boolean) -> Unit)? = null
     ) {
         val item = ItemPodcastSettingBinding.inflate(inflater, binding.settingsContainer, false)
         item.settingIcon.setImageResource(icon)
         item.settingTitle.text = title
         item.settingSubtitle.isVisible = !subtitle.isNullOrBlank()
         item.settingSubtitle.text = subtitle
-        item.settingRow.alpha = if (enabled || onClick != null) 1f else 0.5f
+        item.settingRow.alpha = if (enabled || onClick != null || onSwitchToggle != null) 1f else 0.5f
         item.settingSwitch.isVisible = showSwitch
         item.settingSwitch.isChecked = switchChecked
-        if (onClick != null) {
-            item.settingRow.setOnClickListener { onClick() }
-        } else {
-            item.settingRow.isClickable = false
-            item.settingRow.isFocusable = false
+        when {
+            onSwitchToggle != null -> {
+                item.settingSwitch.setOnCheckedChangeListener { _, checked -> onSwitchToggle(checked) }
+                item.settingRow.setOnClickListener { item.settingSwitch.toggle() }
+            }
+
+            onClick != null -> item.settingRow.setOnClickListener { onClick() }
+            else -> {
+                item.settingRow.isClickable = false
+                item.settingRow.isFocusable = false
+            }
         }
         binding.settingsContainer.addView(item.root)
     }

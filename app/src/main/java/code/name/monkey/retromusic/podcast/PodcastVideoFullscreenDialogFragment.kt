@@ -34,8 +34,8 @@ import code.name.monkey.retromusic.helper.MusicProgressViewUpdateHelper
 
 /**
  * Fullscreen video playback -- an immersive overlay within the same screen/Activity rather than
- * a separate Activity, per AGENTS.md goal #4 ("Expand to fullscreen from the toggled-in video
- * view"). Retargets the single ExoPlayer session's video output to this dialog's own
+ * a separate Activity (see docs/PODCAST_DESIGN.md "Now Playing screen should be type-aware").
+ * Retargets the single ExoPlayer session's video output to this dialog's own
  * [SurfaceView] (see [MusicPlayerRemote.setVideoSurface]) rather than moving the inline
  * [android.view.SurfaceView] itself between view hierarchies, which would risk a surface
  * destroy/recreate glitch. On dismiss, [PodcastVideoFullscreen] flips back to false and
@@ -52,15 +52,32 @@ class PodcastVideoFullscreenDialogFragment : DialogFragment(), MusicProgressView
     private val binding get() = _binding!!
     private var progressViewUpdateHelper: MusicProgressViewUpdateHelper? = null
     private var isUserSeeking = false
+    private var aspectMode = VideoAspectMode.FIT
+    private var lastVideoWidth = 0
+    private var lastVideoHeight = 0
 
     private val surfaceCallback = object : SurfaceHolder.Callback {
         override fun surfaceCreated(holder: SurfaceHolder) {
             MusicPlayerRemote.setVideoSurface(holder.surface)
+            MusicPlayerRemote.setVideoSizeListener(::onVideoSizeChanged)
         }
 
         override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
 
-        override fun surfaceDestroyed(holder: SurfaceHolder) {}
+        override fun surfaceDestroyed(holder: SurfaceHolder) {
+            MusicPlayerRemote.setVideoSizeListener(null)
+        }
+    }
+
+    private fun onVideoSizeChanged(width: Int, height: Int) {
+        lastVideoWidth = width
+        lastVideoHeight = height
+        applyAspect()
+    }
+
+    private fun applyAspect() {
+        val binding = _binding ?: return
+        applyVideoAspect(binding.fullscreenVideoSurfaceView, lastVideoWidth, lastVideoHeight, aspectMode)
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -98,6 +115,7 @@ class PodcastVideoFullscreenDialogFragment : DialogFragment(), MusicProgressView
         binding.fullscreenVideoSurfaceView.holder.addCallback(surfaceCallback)
         binding.fullscreenVideoSurfaceView.setOnClickListener { toggleControlsVisible() }
         binding.closeButton.setOnClickListener { dismiss() }
+        binding.fullscreenAspectButton.setOnClickListener { toggleAspectMode() }
         binding.fullscreenPlayPauseButton.setOnClickListener { togglePlayPause() }
         binding.fullscreenSkipBackButton.setOnClickListener { skip(-SKIP_BACK_MS) }
         binding.fullscreenSkipForwardButton.setOnClickListener { skip(SKIP_FORWARD_MS) }
@@ -123,6 +141,14 @@ class PodcastVideoFullscreenDialogFragment : DialogFragment(), MusicProgressView
      * timer yet -- a plain toggle is enough for now. */
     private fun toggleControlsVisible() {
         binding.controlsOverlay.isVisible = !binding.controlsOverlay.isVisible
+    }
+
+    /** Cycles Fit (letterbox, no cropping) <-> Crop (fills the screen, crops overflow). Fit is
+     * the default on every open -- this doesn't persist across sessions, matching the fullscreen
+     * dialog's generally disposable/no-saved-state nature (see the class doc). */
+    private fun toggleAspectMode() {
+        aspectMode = if (aspectMode == VideoAspectMode.FIT) VideoAspectMode.CROP else VideoAspectMode.FIT
+        applyAspect()
     }
 
     override fun onResume() {
@@ -167,6 +193,7 @@ class PodcastVideoFullscreenDialogFragment : DialogFragment(), MusicProgressView
     override fun onDestroyView() {
         super.onDestroyView()
         progressViewUpdateHelper?.stop()
+        MusicPlayerRemote.setVideoSizeListener(null)
         PodcastVideoFullscreen.setFullscreen(false)
         _binding = null
     }

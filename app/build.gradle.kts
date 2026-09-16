@@ -174,6 +174,9 @@ dependencies {
     implementation(libs.tankery.circularSeekBar)
 
     implementation(libs.androidx.exoplayer)
+    implementation(libs.androidx.exoplayer.hls)
+    implementation(libs.newpipeextractor)
+    implementation(libs.okhttp3)
 }
 
 fun getProperties(fileName: String): Properties? {

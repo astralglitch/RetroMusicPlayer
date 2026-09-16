@@ -17,6 +17,7 @@ package code.name.monkey.retromusic.podcast
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.View
+import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -25,6 +26,7 @@ import androidx.preference.PreferenceManager
 import code.name.monkey.retromusic.PLAYBACK_SPEED
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.FragmentPodcastExtraControlsBinding
+import code.name.monkey.retromusic.extensions.showToast
 import code.name.monkey.retromusic.fragments.base.AbsMusicServiceFragment
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.util.PreferenceUtil
@@ -70,10 +72,8 @@ class PodcastExtraControlsFragment : AbsMusicServiceFragment(R.layout.fragment_p
         binding.skipForwardButton.setOnClickListener { skip(SKIP_FORWARD_MS) }
         binding.speedButton.setOnClickListener { cycleSpeed() }
 
-        binding.videoToggleContainer.isVisible = MusicPlayerRemote.currentSong.videoUrl != null
-        binding.videoToggleButton.setOnClickListener {
-            PodcastVideoToggle.setActive(!PodcastVideoToggle.isActive.value)
-        }
+        updateVideoToggleVisibility()
+        binding.videoToggleButton.setOnClickListener { onVideoToggleClicked() }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -99,6 +99,63 @@ class PodcastExtraControlsFragment : AbsMusicServiceFragment(R.layout.fragment_p
         super.onStop()
         PreferenceManager.getDefaultSharedPreferences(requireContext())
             .unregisterOnSharedPreferenceChangeListener(speedPreferenceListener)
+    }
+
+    override fun onPlayingMetaChanged() {
+        super.onPlayingMetaChanged()
+        if (_binding != null) updateVideoToggleVisibility()
+    }
+
+    private fun updateVideoToggleVisibility() {
+        val song = MusicPlayerRemote.currentSong
+        binding.videoToggleContainer.isVisible = song.videoUrl != null || song.videoSourceUrl != null
+    }
+
+    /** Turning off is always immediate. Turning on: a direct feed video (or an already-resolved
+     * external link, see [VideoLinkResolver.peekCached]) activates immediately too -- the actual
+     * source swap happens in [code.name.monkey.retromusic.service.MusicService.toggleEpisodeVideo],
+     * triggered by [PlayerAlbumCoverFragment]'s surface-creation callback reacting to
+     * [PodcastVideoToggle]. An unresolved external link needs a network round-trip first, so this
+     * shows a brief loading state on the button and only activates the toggle -- making the video
+     * surface appear -- once resolution actually succeeds; a failure never touches the toggle at
+     * all, leaving audio playing uninterrupted. */
+    private fun onVideoToggleClicked() {
+        if (PodcastVideoToggle.isActive.value) {
+            PodcastVideoToggle.setActive(false)
+            return
+        }
+        val song = MusicPlayerRemote.currentSong
+        if (song.videoUrl != null) {
+            PodcastVideoToggle.setActive(true)
+            return
+        }
+        val sourceUrl = song.videoSourceUrl ?: return
+        if (VideoLinkResolver.peekCached(sourceUrl) != null) {
+            PodcastVideoToggle.setActive(true)
+            return
+        }
+        setVideoToggleLoading(true)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val result = VideoLinkResolver.resolve(sourceUrl)
+            if (_binding == null) return@launch
+            setVideoToggleLoading(false)
+            when (result) {
+                is VideoLinkResolver.Result.Success -> PodcastVideoToggle.setActive(true)
+                is VideoLinkResolver.Result.UnsupportedSite ->
+                    requireContext().showToast(getString(R.string.podcast_video_unsupported_site))
+
+                is VideoLinkResolver.Result.ResolutionFailed ->
+                    requireContext().showToast(
+                        getString(R.string.podcast_video_resolution_failed, result.reason)
+                    )
+            }
+        }
+    }
+
+    private fun setVideoToggleLoading(loading: Boolean) {
+        binding.videoToggleButton.isEnabled = !loading
+        binding.videoToggleButton.isInvisible = loading
+        binding.videoToggleLoading.isVisible = loading
     }
 
     private fun skip(deltaMs: Int) {

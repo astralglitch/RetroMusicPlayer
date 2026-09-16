@@ -79,8 +79,12 @@ import code.name.monkey.retromusic.PLAYBACK_PITCH
 import code.name.monkey.retromusic.PLAYBACK_SPEED
 import code.name.monkey.retromusic.PLAYLIST_GRID_SIZE
 import code.name.monkey.retromusic.PLAYLIST_GRID_SIZE_LAND
+import code.name.monkey.retromusic.db.PlayPreference
 import code.name.monkey.retromusic.PLAYLIST_SORT_ORDER
 import code.name.monkey.retromusic.ACTIVE_QUEUE_ID
+import code.name.monkey.retromusic.GLOBAL_AUTO_DOWNLOAD_VIDEO
+import code.name.monkey.retromusic.GLOBAL_PLAY_PREFERENCE
+import code.name.monkey.retromusic.PLAY_VIDEO_LINKS_IN_APP
 import code.name.monkey.retromusic.PREFER_STREAMING
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.RECENTLY_PLAYED_CUTOFF
@@ -881,6 +885,27 @@ object PreferenceUtil {
     var activeQueueId: Long
         get() = sharedPreferences.getLong(ACTIVE_QUEUE_ID, -1L)
         set(value) = sharedPreferences.edit { putLong(ACTIVE_QUEUE_ID, value) }
+
+    var playVideoLinksInApp: Boolean
+        get() = sharedPreferences.getBoolean(PLAY_VIDEO_LINKS_IN_APP, true)
+        set(value) = sharedPreferences.edit { putBoolean(PLAY_VIDEO_LINKS_IN_APP, value) }
+
+    /** App-wide default for whether tapping play also auto-activates the video toggle --
+     * overridable per podcast via `PodcastEntity.playPreference`. */
+    var globalPlayPreference: PlayPreference
+        get() = if (sharedPreferences.getString(GLOBAL_PLAY_PREFERENCE, null) == PlayPreference.VIDEO_FIRST.name) {
+            PlayPreference.VIDEO_FIRST
+        } else {
+            PlayPreference.AUDIO_FIRST
+        }
+        set(value) = sharedPreferences.edit { putString(GLOBAL_PLAY_PREFERENCE, value.name) }
+
+    /** App-wide default for whether an episode's video (feed-direct or a resolved external
+     * link) auto-downloads alongside its audio -- off by default to avoid using extra storage
+     * unasked; overridable per podcast via `PodcastEntity.autoDownloadVideo`. */
+    var globalAutoDownloadVideo: Boolean
+        get() = sharedPreferences.getBoolean(GLOBAL_AUTO_DOWNLOAD_VIDEO, false)
+        set(value) = sharedPreferences.edit { putBoolean(GLOBAL_AUTO_DOWNLOAD_VIDEO, value) }
 
     var audioFadeDuration
         get() = sharedPreferences

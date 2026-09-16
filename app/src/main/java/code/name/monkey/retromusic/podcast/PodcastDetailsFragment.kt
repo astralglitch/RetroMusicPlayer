@@ -23,6 +23,7 @@ import android.view.View
 import androidx.core.os.bundleOf
 import androidx.core.text.parseAsHtml
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -86,7 +87,20 @@ class PodcastDetailsFragment : AbsMainActivityFragment(R.layout.fragment_podcast
             onTogglePlayed = { episode, played -> viewModel.setPlayed(episode, played) },
             onToggleFavorited = { episode, favorited -> viewModel.setFavorited(episode, favorited) },
             onStream = { playEpisode(it) },
-            onAddToQueue = { viewModel.addToActiveQueue(it) }
+            onAddToQueue = { viewModel.addToActiveQueue(it) },
+            onDownloadVideo = { episode ->
+                viewModel.downloadVideo(episode) { result ->
+                    val message = when (result) {
+                        is EpisodeDownloadManager.EnqueueVideoResult.UnsupportedStreamType ->
+                            getString(R.string.podcast_video_download_unsupported)
+                        is EpisodeDownloadManager.EnqueueVideoResult.ResolutionFailed ->
+                            getString(R.string.podcast_video_resolution_failed, result.reason)
+                        else -> null
+                    }
+                    if (message != null) requireContext().showToast(message)
+                }
+            },
+            onDeleteVideoDownload = { viewModel.deleteVideoDownload(it) }
         )
         binding.episodesRecyclerView.apply {
             layoutManager = LinearLayoutManager(requireContext())
@@ -175,6 +189,7 @@ class PodcastDetailsFragment : AbsMainActivityFragment(R.layout.fragment_podcast
             pendingResumePositionMs = episode.playbackPositionMs.toInt()
         }
         MusicPlayerRemote.openQueue(queue, startPosition, true)
+        viewLifecycleOwner.lifecycleScope.activateVideoIfPreferred(episode, podcast)
     }
 
     override fun onPlayingMetaChanged() {

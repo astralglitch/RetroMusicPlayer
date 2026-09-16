@@ -25,7 +25,11 @@ import code.name.monkey.retromusic.db.MediaItemEntity
 import code.name.monkey.retromusic.db.MediaItemType
 import code.name.monkey.retromusic.db.PodcastDao
 import code.name.monkey.retromusic.db.PodcastEntity
+import code.name.monkey.retromusic.db.PlayPreference
 import code.name.monkey.retromusic.db.PodcastSourceType
+import code.name.monkey.retromusic.db.VideoLinkRuleDao
+import code.name.monkey.retromusic.db.VideoLinkRuleEntity
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -38,7 +42,8 @@ class PodcastRepository(
     private val podcastDao: PodcastDao,
     private val episodeDao: EpisodeDao,
     private val mediaItemDao: MediaItemDao,
-    private val queueRepository: QueueRepository
+    private val queueRepository: QueueRepository,
+    private val videoLinkRuleDao: VideoLinkRuleDao
 ) {
 
     fun podcasts(): Flow<List<PodcastEntity>> = podcastDao.podcasts()
@@ -219,8 +224,18 @@ class PodcastRepository(
         episodes: List<ParsedEpisode>,
         targetQueueId: Long?
     ) {
+        // Only ever run for genuinely new rows (an `existing` row already has its own
+        // videoSourceUrl/candidates, which must never be clobbered by a later refresh -- whether
+        // it was set manually or by an earlier rule match).
+        val rules = videoLinkRuleDao.enabledRulesForPodcastSync(podcastId)
+
         val entities = episodes.map { parsed ->
             val existing = episodeDao.episodeForGuid(podcastId, parsed.guid)
+            val matches = if (existing == null && parsed.videoUrl == null) {
+                VideoLinkMatcher.findMatches(parsed.description, rules)
+            } else {
+                emptyList()
+            }
             EpisodeEntity(
                 id = existing?.id ?: 0,
                 podcastId = podcastId,
@@ -237,7 +252,13 @@ class PodcastRepository(
                 downloadId = existing?.downloadId,
                 playbackPositionMs = existing?.playbackPositionMs ?: 0,
                 played = existing?.played ?: false,
-                favorited = existing?.favorited ?: false
+                favorited = existing?.favorited ?: false,
+                videoSourceUrl = existing?.videoSourceUrl ?: matches.firstOrNull(),
+                videoLinkCandidates = existing?.videoLinkCandidates
+                    ?: matches.drop(1).takeIf { it.isNotEmpty() }?.let { Gson().toJson(it) },
+                videoDownloadState = existing?.videoDownloadState ?: EpisodeDownloadState.NOT_DOWNLOADED,
+                videoDownloadId = existing?.videoDownloadId,
+                videoLocalFilePath = existing?.videoLocalFilePath
             )
         }
         // @Upsert returns each row's id for a fresh insert, -1 for a row that instead went
@@ -268,6 +289,49 @@ class PodcastRepository(
 
     suspend fun setEpisodeVideoSourceUrl(episodeId: Long, url: String?) = withContext(Dispatchers.IO) {
         episodeDao.updateVideoSourceUrl(episodeId, url)
+    }
+
+    fun rulesForPodcast(podcastId: Long): Flow<List<VideoLinkRuleEntity>> =
+        videoLinkRuleDao.rulesForPodcast(podcastId)
+
+    suspend fun upsertVideoLinkRule(rule: VideoLinkRuleEntity) =
+        withContext(Dispatchers.IO) { videoLinkRuleDao.upsertRule(rule) }
+
+    suspend fun deleteVideoLinkRule(rule: VideoLinkRuleEntity) =
+        withContext(Dispatchers.IO) { videoLinkRuleDao.deleteRule(rule) }
+
+    suspend fun setPodcastPlayPreference(podcastId: Long, preference: PlayPreference?) =
+        withContext(Dispatchers.IO) { podcastDao.updatePlayPreference(podcastId, preference) }
+
+    suspend fun setPodcastAutoDownloadVideo(podcastId: Long, autoDownload: Boolean?) =
+        withContext(Dispatchers.IO) { podcastDao.updateAutoDownloadVideo(podcastId, autoDownload) }
+
+    /** Re-runs this podcast's currently-enabled rules against every episode that has neither a
+     * feed-direct video ([EpisodeEntity.videoUrl]) nor an already-assigned/matched
+     * [EpisodeEntity.videoSourceUrl] -- lets a user who defines rules *after* subscribing pick up
+     * episodes fetched before any rule existed. Returns how many episodes were updated, for the
+     * caller to report back (see [VideoLinkRulesFragment]). */
+    suspend fun reapplyVideoLinkRules(podcastId: Long): Int = withContext(Dispatchers.IO) {
+        val rules = videoLinkRuleDao.enabledRulesForPodcastSync(podcastId)
+        if (rules.isEmpty()) return@withContext 0
+
+        val candidates = episodeDao.episodesForPodcastSync(podcastId)
+            .filter { it.videoUrl == null && it.videoSourceUrl == null }
+
+        var updated = 0
+        candidates.forEach { episode ->
+            val matches = VideoLinkMatcher.findMatches(episode.description, rules)
+            if (matches.isNotEmpty()) {
+                episodeDao.upsertEpisode(
+                    episode.copy(
+                        videoSourceUrl = matches.first(),
+                        videoLinkCandidates = matches.drop(1).takeIf { it.isNotEmpty() }?.let { Gson().toJson(it) }
+                    )
+                )
+                updated++
+            }
+        }
+        updated
     }
 
     /** Only meaningful for an [PodcastSourceType.RSS] podcast -- changing where its feed is

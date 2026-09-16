@@ -22,6 +22,7 @@ import android.view.View
 import androidx.core.os.bundleOf
 import androidx.core.view.GravityCompat
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import code.name.monkey.retromusic.R
@@ -133,6 +134,7 @@ class PodcastHomeFragment : AbsMainActivityFragment(R.layout.fragment_podcast_ho
     private fun streamEpisode(episode: EpisodeEntity) {
         val podcast = viewModel.podcasts.value?.firstOrNull { it.id == episode.podcastId } ?: return
         MusicPlayerRemote.openQueue(listOf(episode.toSong(podcast)), 0, true)
+        viewLifecycleOwner.lifecycleScope.activateVideoIfPreferred(episode, podcast)
     }
 
     private fun openPodcast(podcastId: Long) {

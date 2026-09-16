@@ -103,6 +103,19 @@
         <argument
             android:name="extra_podcast_id"
             app:argType="long" />
+        <action
+            android:id="@+id/action_podcastSettingsFragment_to_videoLinkRulesFragment"
+            app:destination="@id/videoLinkRulesFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/videoLinkRulesFragment"
+        android:name="code.name.monkey.retromusic.podcast.VideoLinkRulesFragment"
+        android:label="VideoLinkRulesFragment"
+        tools:layout="@layout/fragment_video_link_rules">
+        <argument
+            android:name="extra_podcast_id"
+            app:argType="long" />
     </fragment>
 
     <fragment

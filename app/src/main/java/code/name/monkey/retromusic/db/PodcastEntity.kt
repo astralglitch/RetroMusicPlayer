@@ -25,6 +25,14 @@ enum class PodcastSourceType {
     FOLDER
 }
 
+/** Whether tapping play on an episode should also auto-activate the audio<->video toggle when a
+ * video is available -- see `PreferenceUtil.globalPlayPreference` (the app-wide default) and
+ * [PodcastEntity.playPreference] (a per-podcast override, null meaning "use the global default"). */
+enum class PlayPreference {
+    AUDIO_FIRST,
+    VIDEO_FIRST
+}
+
 /** A subscribed podcast feed, or a local/network folder mapped as a podcast source. */
 @Entity(indices = [Index(value = ["feed_url"], unique = true)])
 data class PodcastEntity(
@@ -63,5 +71,13 @@ data class PodcastEntity(
     /** Persisted SAF tree URI string (see `ContentResolver.takePersistableUriPermission`),
      * present only for [PodcastSourceType.FOLDER] sources. */
     @ColumnInfo(name = "folder_uri")
-    val folderUri: String? = null
+    val folderUri: String? = null,
+
+    /** Null = use `PreferenceUtil.globalPlayPreference`. */
+    @ColumnInfo(name = "play_preference")
+    val playPreference: PlayPreference? = null,
+
+    /** Null = use `PreferenceUtil.globalAutoDownloadVideo`. See `EpisodeDownloadManager.enqueueVideo`. */
+    @ColumnInfo(name = "auto_download_video")
+    val autoDownloadVideo: Boolean? = null
 )

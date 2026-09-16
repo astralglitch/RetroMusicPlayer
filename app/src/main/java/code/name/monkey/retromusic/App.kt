@@ -24,11 +24,13 @@ import code.name.monkey.retromusic.activities.MainActivity
 import code.name.monkey.retromusic.appshortcuts.DynamicShortcutManager
 import code.name.monkey.retromusic.helper.WallpaperAccentManager
 import code.name.monkey.retromusic.podcast.EpisodeDownloadManager
+import code.name.monkey.retromusic.podcast.NewPipeOkHttpDownloader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.android.inject
 import org.koin.core.context.startKoin
+import org.schabi.newpipe.extractor.NewPipe
 
 class App : Application() {
 
@@ -44,6 +46,9 @@ class App : Application() {
             modules(appModules)
         }
         episodeDownloadManager.registerReceiver(CoroutineScope(SupervisorJob()))
+        // Resolves manually-assigned podcast video links (e.g. YouTube) to a playable stream --
+        // see docs/PODCAST_DESIGN.md "Podcast video, stage 2".
+        NewPipe.init(NewPipeOkHttpDownloader())
         // default theme
         if (!ThemeStore.isConfigured(this, 3)) {
             ThemeStore.editTheme(this)

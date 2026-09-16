@@ -14,9 +14,16 @@
  */
 package code.name.monkey.retromusic.podcast
 
+import androidx.lifecycle.LifecycleCoroutineScope
 import code.name.monkey.retromusic.db.EpisodeEntity
+import code.name.monkey.retromusic.db.PlayPreference
 import code.name.monkey.retromusic.db.PodcastEntity
+import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.model.Song
+import code.name.monkey.retromusic.util.PreferenceUtil
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Separate id space from MediaStore song ids (which come from the device's content provider and
@@ -52,6 +59,37 @@ fun EpisodeEntity.toSong(podcast: PodcastEntity): Song {
         composer = null,
         albumArtist = null,
         artworkUrl = podcast.imageUrl,
-        videoUrl = videoUrl
+        videoUrl = videoUrl,
+        videoSourceUrl = videoSourceUrl
     )
+}
+
+/**
+ * Auto-activates the audio<->video toggle right after [episode] starts playing, if this
+ * podcast's effective play preference ([PodcastEntity.playPreference], falling back to
+ * [PreferenceUtil.globalPlayPreference]) is [PlayPreference.VIDEO_FIRST] and a video is actually
+ * available for it. A no-op otherwise -- called from every "start playback" site (episode
+ * details, a podcast's own episode list, cross-podcast episode lists, the queue) right after
+ * `MusicPlayerRemote.openQueue`.
+ *
+ * `openQueue` only queues the track asynchronously (the service advances to it on its own
+ * coroutine), so this waits, bounded, for `MusicPlayerRemote.currentSong` to actually become
+ * [episode] before flipping [PodcastVideoToggle] -- same reasoning as
+ * `EpisodeDetailsFragment.ensurePlayingAndActivateVideo`, which predates this and still owns the
+ * *manual* "Video available" chip/dialog flow.
+ */
+fun LifecycleCoroutineScope.activateVideoIfPreferred(episode: EpisodeEntity, podcast: PodcastEntity) {
+    val preference = podcast.playPreference ?: PreferenceUtil.globalPlayPreference
+    if (preference != PlayPreference.VIDEO_FIRST) return
+    if (episode.videoUrl == null && episode.videoSourceUrl == null) return
+    launch {
+        withTimeoutOrNull(3000) {
+            while (MusicPlayerRemote.currentSong.episodeIdOrNull() != episode.id) {
+                delay(50)
+            }
+        }
+        if (MusicPlayerRemote.currentSong.episodeIdOrNull() == episode.id) {
+            PodcastVideoToggle.setActive(true)
+        }
+    }
 }

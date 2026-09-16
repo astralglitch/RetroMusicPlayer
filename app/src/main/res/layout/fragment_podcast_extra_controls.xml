@@ -49,7 +49,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/podcast_skip_back"
                 android:padding="8dp"
-                android:src="@drawable/ic_history" />
+                android:src="@drawable/ic_undo" />
 
             <com.google.android.material.textview.MaterialTextView
                 android:layout_width="wrap_content"
@@ -94,15 +94,27 @@
             android:visibility="gone"
             tools:visibility="visible">
 
-            <ImageButton
-                android:id="@+id/videoToggleButton"
-                style="?attr/borderlessButtonStyle"
+            <FrameLayout
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/podcast_toggle_video"
-                android:padding="8dp"
-                android:src="@drawable/ic_play_circle" />
+                android:layout_height="wrap_content">
+
+                <ImageButton
+                    android:id="@+id/videoToggleButton"
+                    style="?attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/podcast_toggle_video"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_play_circle" />
+
+                <ProgressBar
+                    android:id="@+id/videoToggleLoading"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="center"
+                    android:visibility="gone" />
+            </FrameLayout>
 
             <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/videoToggleLabel"

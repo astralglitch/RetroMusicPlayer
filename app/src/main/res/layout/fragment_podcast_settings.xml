@@ -33,26 +33,6 @@
             android:orientation="vertical"
             android:paddingBottom="@dimen/mini_player_height">
 
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/settingsTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginEnd="16dp"
-                android:text="@string/podcast_settings"
-                android:textAppearance="@style/TextViewHeadline5" />
-
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/settingsSubtitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?android:attr/textColorSecondary"
-                tools:text="The Downside with Gianmarco Soresi" />
-
             <LinearLayout
                 android:id="@+id/settingsContainer"
                 android:layout_width="match_parent"

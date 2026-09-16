@@ -90,6 +90,119 @@ model) before falling through to the old AudioFileCover/MediaStore paths -- so N
 Playing, the mini-player, and anywhere else `getSongModel`/`songCoverOptions` is used
 now show the podcast's real cover art instead of nothing.
 
+### Podcast video, part 2: resolving external (YouTube-etc.) video links in-app
+
+The section above covers episodes whose feed enclosure *is* a video file
+(`EpisodeEntity.videoUrl`). Episodes can also carry a manually-attached video *page*
+link instead (`EpisodeEntity.videoSourceUrl`, e.g. a YouTube URL) -- not directly
+playable by ExoPlayer. This is resolved to a real playable stream via
+[NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor) and played through
+**the exact same toggle/inline-surface/fullscreen system** as a direct feed video (an
+earlier version of this routed resolved links through a separate, always-fullscreen,
+throwaway `ExoPlayer` instance with no aspect-ratio handling at all -- stretched video,
+no toggle, no position sync back to audio; that's gone now):
+
+- `podcast/VideoLinkResolver.kt` -- suspend `resolve(sourceUrl)` on `Dispatchers.IO`,
+  calls `NewPipe.getServiceByUrl()` then extracts a playable stream (progressive MP4
+  preferred, HLS master URL as fallback). Returns `Success`/`UnsupportedSite`/
+  `ResolutionFailed`. Resolved stream URLs are signed/time-limited by the source site,
+  so they're cached in-memory only (`peekCached()` for a synchronous, non-resolving
+  lookup), for the current process, never persisted to Room.
+- `podcast/NewPipeOkHttpDownloader.kt` -- the `Downloader` NewPipeExtractor needs to
+  actually make HTTP requests, backed by a small dedicated `OkHttpClient`. Initialized
+  once via `NewPipe.init(...)` in `App.onCreate()`.
+- `Song.videoSourceUrl` (alongside `videoUrl`) carries the unresolved link onto the
+  currently-playing song, same reasoning as `videoUrl` -- lets the Now Playing toggle
+  button know a video is available at all without a DB round-trip (`EpisodeExtensions.toSong`).
+- **Resolution happens in the UI layer, never in the service.** `PodcastExtraControlsFragment`'s
+  toggle button: if `videoUrl` is set, or `videoSourceUrl` is already resolved
+  (`VideoLinkResolver.peekCached`), the toggle activates immediately, same as before. If
+  only an *unresolved* `videoSourceUrl` exists, tapping shows a brief loading spinner on
+  the button, resolves in `lifecycleScope`, and only activates
+  [`PodcastVideoToggle`](#now-playing-screen-should-be-type-aware) on success --
+  `MusicService.toggleEpisodeVideo` itself stays fully synchronous, just picking
+  `videoUrl` or the resolver's cached entry for `videoSourceUrl`. This is also how the
+  episode details page's "Video link" dialog and "Video available" chip play a
+  resolved link now: resolve, then activate the same toggle and expand the sliding
+  player panel, instead of opening a standalone dialog.
+- `RetroExoPlayer.swapMediaSource` grew an `isHls` parameter (threaded through
+  `Playback`/`PlaybackManager`/`MusicService`) so a resolved HLS stream URL -- which
+  typically has neither a `.m3u8` extension nor a reliable MIME type for Media3 to
+  auto-detect -- gets built as an explicit `HlsMediaSource` instead of a plain
+  `MediaItem`.
+- Fallback: `UnsupportedSite`/`ResolutionFailed` never touch the toggle -- audio keeps
+  playing uninterrupted, with a toast explaining why; the episode-details entry points
+  additionally fall back to `ACTION_VIEW` (open externally), same as before.
+- Settings: `PodcastSettingsFragment`'s Automation section has a "Play video links
+  in-app" toggle (`PreferenceUtil.playVideoLinksInApp`, **on by default** -- safe
+  since external-open remains the automatic fallback on any failure). This is a
+  *global* app setting, not per-podcast, even though it's surfaced from a per-podcast
+  settings screen.
+
+**Known, permanent scope gap: NewPipeExtractor does not support Vimeo** (it supports
+YouTube, SoundCloud, PeerTube, Bandcamp, media.ccc.de), despite `videoSourceUrl`'s
+generic name/hint text. A Vimeo link -- or any other site NewPipeExtractor doesn't
+recognize -- resolves as `UnsupportedSite` and falls back to external-open. A
+Vimeo-specific resolver (e.g. via Vimeo's own oEmbed/config API) would need a separate
+implementation and isn't planned.
+
+**Auto-detecting a video link from an episode's show notes** is built: per-podcast
+"video link rules" (`db/VideoLinkRuleEntity`, `podcast/VideoLinkMatcher.kt`) scan an
+episode's description for URLs and match them against enabled rules (a built-in preset --
+YouTube/Vimeo/SoundCloud, see `podcast/VideoLinkPresets.kt` -- or a custom regex), applied
+in `PodcastRepository.persistEpisodes()` for newly-fetched episodes only (never touches an
+already-set `videoSourceUrl`, whether set manually or by an earlier rule match). If more
+than one link matches, the first becomes the primary `videoSourceUrl`; the rest are kept
+as `EpisodeEntity.videoLinkCandidates` (JSON-encoded) for a future "switch primary video"
+UI -- not surfaced anywhere yet. Rules are managed from a podcast's settings screen
+("Video link rules" -> `podcast/VideoLinkRulesFragment.kt`), including a "re-apply to
+existing episodes" action for episodes fetched before any rule existed. The episode list
+row (`EpisodeAdapter`) now shows a small video-camera icon when either `videoUrl` or
+`videoSourceUrl` is set, so a show's video-having episodes are visible without opening
+each one.
+
+**Play preference** (`db/PlayPreference`: `AUDIO_FIRST`/`VIDEO_FIRST`) decides whether
+starting playback also auto-activates the audio<->video toggle when a video is available
+-- global default via `PreferenceUtil.globalPlayPreference`, overridable per podcast via
+`PodcastEntity.playPreference` (null = inherit the global default). Wired into every
+"start playback" call site (`EpisodeDetailsFragment.play()`, `PodcastDetailsFragment.playEpisode()`,
+the cross-podcast episode lists' stream action, `QueueFragment.playFrom()`) via the shared
+`EpisodeExtensions.activateVideoIfPreferred()` helper.
+
+**Video download management**: video now downloads as a file fully separate from audio
+(`EpisodeEntity.videoDownloadState`/`videoDownloadId`/`videoLocalFilePath`, mirroring the
+existing audio trio) -- `EpisodeDownloadManager.enqueueVideo()`/`deleteVideoDownload()`.
+This means video is **no longer auto-downloaded** just because a feed's enclosure happens
+to be a video file; downloading it is now an explicit action (episode long-press ->
+"Download video"), and `PreferenceUtil.globalAutoDownloadVideo` (off by default, per-podcast
+override via `PodcastEntity.autoDownloadVideo`) exists as the policy switch for a future
+auto-download-on-refresh hook -- **not yet wired to anything**, since no such hook exists
+for audio downloads either (episodes are never auto-downloaded today, only on explicit
+tap); building that is a separate, not-yet-scoped piece of work for both audio and video.
+An external (YouTube-etc.) video link downloads by first resolving it via
+`VideoLinkResolver` to a real stream URL -- only a progressive (non-HLS) result can be
+downloaded this way, since `DownloadManager` can't fetch a segmented stream; an HLS-only
+resolution surfaces as "can't download this video" instead.
+
+**Fullscreen aspect ratio + fit/crop**: `PodcastVideoFullscreenDialogFragment` never
+wired a video-size listener at all, so video was stretched to fill the screen
+regardless of source aspect ratio -- fixed by sharing `podcast/VideoAspectFit.kt`'s
+sizing function with the inline surface (`PlayerAlbumCoverFragment`, `Fit`-only) and
+adding a `Fit`/`Crop` toggle button to the fullscreen controls (defaults to `Fit`,
+doesn't persist across opens).
+
+**Future idea, not built**: per-episode or per-podcast audio<->video offset mapping,
+for shows whose video track has a longer/shorter intro than the audio -- so toggling
+mid-episode could compensate automatically instead of landing slightly out of sync.
+Noted here for later; no design work done yet.
+
+- **Status:** built -- one unified toggle/inline-surface/fullscreen system for both
+  feed-direct video and resolved external links (YouTube/SoundCloud/PeerTube/Bandcamp);
+  everything else, including Vimeo, falls back to external-open. Minor playback
+  stutter on toggle is a known, accepted limitation. Auto-detection rules, the play
+  preference, and separate video downloads (above) are also built; auto-download-on-refresh
+  policy is not wired to anything yet (see above).
+
 ## Per-tab swipe actions
 
 AntennaPod lets you configure a left-swipe and right-swipe action per screen (e.g.

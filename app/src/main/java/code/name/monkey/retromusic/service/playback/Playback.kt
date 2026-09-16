@@ -64,9 +64,12 @@ interface Playback {
 
     /** Swaps the currently loaded media source for [uri] in place, resuming at
      * [resumePositionMs] and preserving whatever the play/pause state was -- the audio<->video
-     * toggle's "capture position, swap, seek, resume" sequence for one [Playback] instance. No-op
-     * by default, same reasoning as [setVideoSurface]. */
-    fun swapMediaSource(uri: Uri, resumePositionMs: Long) {}
+     * toggle's "capture position, swap, seek, resume" sequence for one [Playback] instance.
+     * [isHls] selects an `HlsMediaSource` instead of relying on Media3's URL/MIME auto-detection,
+     * needed for resolved third-party stream URLs (e.g. YouTube) which typically have neither a
+     * `.m3u8` extension nor a reliable content type. No-op by default, same reasoning as
+     * [setVideoSurface]. */
+    fun swapMediaSource(uri: Uri, resumePositionMs: Long, isHls: Boolean = false) {}
 
     /** Reports the natural (width, height) of the current video track as it becomes known/
      * changes, so a UI showing the video surface can size it to fit without stretching. No-op

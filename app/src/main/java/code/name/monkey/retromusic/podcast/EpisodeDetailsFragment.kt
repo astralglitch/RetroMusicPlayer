@@ -25,6 +25,7 @@ import android.widget.FrameLayout
 import androidx.core.net.toUri
 import androidx.core.text.parseAsHtml
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import code.name.monkey.retromusic.R
@@ -38,6 +39,10 @@ import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.util.PreferenceUtil
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
+import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.koin.core.parameter.parametersOf
 import java.text.DateFormat
@@ -164,6 +169,35 @@ class EpisodeDetailsFragment : AbsMainActivityFragment(R.layout.fragment_episode
         }
         val podcast = viewModel.podcast.value ?: return
         MusicPlayerRemote.openQueue(listOf(episode.toSong(podcast)), 0, true)
+        viewLifecycleOwner.lifecycleScope.activateVideoIfPreferred(episode, podcast)
+    }
+
+    /** Unlike [play], never toggles pause/resume on an already-playing episode -- called right
+     * before activating the video toggle, where the only goal is "this episode's audio session
+     * exists so the toggle has something to swap," not "flip play state." */
+    private fun ensurePlaying() {
+        val episode = viewModel.episode.value ?: return
+        if (MusicPlayerRemote.currentSong.episodeIdOrNull() == episode.id) return
+        val podcast = viewModel.podcast.value ?: return
+        MusicPlayerRemote.openQueue(listOf(episode.toSong(podcast)), 0, true)
+    }
+
+    /** [MusicPlayerRemote.openQueue] swaps its internal queue list synchronously but only
+     * advances to the new track (and updates [MusicPlayerRemote.currentSong]) via a coroutine
+     * launched inside `MusicService`, so it returns before that's actually happened. Activating
+     * [PodcastVideoToggle] immediately after [ensurePlaying] would then have
+     * `MusicService.toggleEpisodeVideo` read a stale (or momentarily empty) `currentSong` and
+     * silently no-op -- the video surface attaches but no source ever gets swapped into it,
+     * producing a black surface with audio continuing underneath. Wait (briefly, bounded) for
+     * `currentSong` to actually become this episode before flipping the toggle. */
+    private suspend fun ensurePlayingAndActivateVideo(episodeId: Long) {
+        ensurePlaying()
+        withTimeoutOrNull(3000) {
+            while (MusicPlayerRemote.currentSong.episodeIdOrNull() != episodeId) {
+                delay(50)
+            }
+        }
+        PodcastVideoToggle.setActive(true)
     }
 
     private fun onDownloadActionClicked() {
@@ -211,9 +245,13 @@ class EpisodeDetailsFragment : AbsMainActivityFragment(R.layout.fragment_episode
     }
 
     /** Lets the user assign/edit a link to a video version of this episode (a YouTube/Vimeo/etc.
-     * page, found in show notes or entered by hand) and open it externally. Not directly played
-     * in-app yet -- see EpisodeEntity.videoSourceUrl's doc comment for why, and AGENTS.md goal #5
-     * for the planned in-app resolution/playback follow-up. */
+     * page, entered by hand -- auto-detection from show notes isn't built). If in-app playback is
+     * enabled (see [PreferenceUtil.playVideoLinksInApp]), the neutral button resolves the link via
+     * [VideoLinkResolver] and plays it through the same audio<->video toggle/inline surface as a
+     * feed-direct video (see [playOrOpenVideoLink]); unsupported sites (notably Vimeo --
+     * NewPipeExtractor doesn't support it) or resolution failures fall back to opening the link
+     * externally, same as when the setting is off. See docs/PODCAST_DESIGN.md "Podcast video" for
+     * the full design. */
     private fun showVideoLinkDialog() {
         val current = viewModel.episode.value ?: return
         val input = EditText(requireContext()).apply {
@@ -232,34 +270,93 @@ class EpisodeDetailsFragment : AbsMainActivityFragment(R.layout.fragment_episode
                 viewModel.setVideoSourceUrl(input.text?.toString()?.trim()?.ifBlank { null })
             }
             .setNeutralButton(R.string.podcast_open_in_browser) { _, _ ->
-                val url = current.videoSourceUrl
-                if (url.isNullOrBlank()) {
-                    requireContext().showToast(getString(R.string.podcast_video_link_none))
-                } else {
-                    startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, url.toUri()))
-                }
+                playOrOpenVideoLink(current.id, current.videoSourceUrl)
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
+    /** Resolves [url] (if in-app playback is enabled) and, on success, plays [episodeId] (if not
+     * already playing) and turns on the same audio<->video toggle the Now Playing screen's own
+     * button uses ([PodcastVideoToggle]) -- video appears inline where the album art normally
+     * sits, then the sliding player panel is expanded so it's actually visible, rather than a
+     * separate standalone player. Unsupported sites/resolution failures fall back to external-open,
+     * same as before. */
+    private fun playOrOpenVideoLink(episodeId: Long, url: String?) {
+        if (url.isNullOrBlank()) {
+            requireContext().showToast(getString(R.string.podcast_video_link_none))
+            return
+        }
+        if (!PreferenceUtil.playVideoLinksInApp) {
+            openVideoLinkExternally(url)
+            return
+        }
+        val loadingSnackbar = Snackbar.make(binding.root, R.string.podcast_video_resolving, Snackbar.LENGTH_INDEFINITE)
+        loadingSnackbar.show()
+        viewLifecycleOwner.lifecycleScope.launch {
+            val result = VideoLinkResolver.resolve(url)
+            loadingSnackbar.dismiss()
+            when (result) {
+                is VideoLinkResolver.Result.Success -> {
+                    ensurePlayingAndActivateVideo(episodeId)
+                    mainActivity.expandPanel()
+                }
+
+                is VideoLinkResolver.Result.UnsupportedSite -> {
+                    requireContext().showToast(getString(R.string.podcast_video_unsupported_site))
+                    openVideoLinkExternally(url)
+                }
+
+                is VideoLinkResolver.Result.ResolutionFailed -> {
+                    requireContext().showToast(
+                        getString(R.string.podcast_video_resolution_failed, result.reason)
+                    )
+                    openVideoLinkExternally(url)
+                }
+            }
+        }
+    }
+
+    private fun openVideoLinkExternally(url: String) {
+        startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, url.toUri()))
+    }
+
     /** A small "video available" indicator, distinguishing where the video came from: directly
      * playable ([EpisodeEntity.videoUrl], from the feed's own video enclosure) vs. an external
-     * link ([EpisodeEntity.videoSourceUrl], detected in show notes or entered by hand -- not
-     * auto-detection isn't built yet, see AGENTS.md goal #5, so today this only ever means
-     * "manually added"). Tapping shows which case applies and, for the external case, the link. */
+     * link ([EpisodeEntity.videoSourceUrl], entered by hand -- auto-detection from show notes
+     * isn't built). Tapping offers the relevant action directly instead of just describing it:
+     * for a feed video, play the episode (the audio/video toggle picks it up automatically); for
+     * an external link, the same resolve-and-play-or-fallback flow as the video link dialog's
+     * neutral button, plus an explicit "open in browser" escape hatch. */
     private fun showVideoAvailabilityInfo(episode: EpisodeEntity) {
-        val message = when {
-            episode.videoUrl != null -> getString(R.string.podcast_video_source_feed)
-            episode.videoSourceUrl != null ->
-                getString(R.string.podcast_video_source_external, episode.videoSourceUrl)
-            else -> return
+        when {
+            episode.videoUrl != null -> {
+                AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.podcast_video_available)
+                    .setMessage(R.string.podcast_video_source_feed)
+                    .setPositiveButton(R.string.action_play) { _, _ ->
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            ensurePlayingAndActivateVideo(episode.id)
+                            mainActivity.expandPanel()
+                        }
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            }
+
+            episode.videoSourceUrl != null -> {
+                val url = episode.videoSourceUrl
+                AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.podcast_video_available)
+                    .setMessage(getString(R.string.podcast_video_source_external, url))
+                    .setPositiveButton(R.string.action_play) { _, _ -> playOrOpenVideoLink(episode.id, url) }
+                    .setNeutralButton(R.string.podcast_open_in_browser) { _, _ ->
+                        openVideoLinkExternally(url)
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            }
         }
-        AlertDialog.Builder(requireContext())
-            .setTitle(R.string.podcast_video_available)
-            .setMessage(message)
-            .setPositiveButton(android.R.string.ok, null)
-            .show()
     }
 
     private fun showBookmarksDialog() {

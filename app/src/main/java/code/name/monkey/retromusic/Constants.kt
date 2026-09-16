@@ -176,3 +176,11 @@ const val PREFER_STREAMING = "prefer_streaming"
 /** Which QueueEntity the Podcasts-world Queue tab shows by default -- -1 means "resolve to the
  * default queue" (see QueueViewModel), so this doesn't need seeding at migration time. */
 const val ACTIVE_QUEUE_ID = "active_queue_id"
+/** On by default -- resolve a manually-assigned podcast video link (e.g. YouTube) via
+ * NewPipeExtractor and play it in-app, instead of always opening it externally. External-open
+ * remains the automatic fallback whenever resolution fails or the site isn't supported (e.g.
+ * Vimeo), so this is a global setting, not per-podcast, despite being surfaced from a per-podcast
+ * settings screen. See docs/PODCAST_DESIGN.md "Podcast video, stage 2". */
+const val PLAY_VIDEO_LINKS_IN_APP = "play_video_links_in_app"
+const val GLOBAL_PLAY_PREFERENCE = "global_play_preference"
+const val GLOBAL_AUTO_DOWNLOAD_VIDEO = "global_auto_download_video"

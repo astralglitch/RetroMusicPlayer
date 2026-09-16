@@ -33,6 +33,9 @@ interface EpisodeDao {
     @Query("SELECT * FROM EpisodeEntity WHERE podcast_id = :podcastId ORDER BY pub_date DESC")
     fun episodesForPodcast(podcastId: Long): Flow<List<EpisodeEntity>>
 
+    @Query("SELECT * FROM EpisodeEntity WHERE podcast_id = :podcastId ORDER BY pub_date DESC")
+    suspend fun episodesForPodcastSync(podcastId: Long): List<EpisodeEntity>
+
     @Query("SELECT * FROM EpisodeEntity WHERE id = :episodeId LIMIT 1")
     suspend fun episodeById(episodeId: Long): EpisodeEntity?
 
@@ -50,6 +53,9 @@ interface EpisodeDao {
 
     @Query("SELECT * FROM EpisodeEntity WHERE download_id = :downloadId LIMIT 1")
     suspend fun episodeForDownloadId(downloadId: Long): EpisodeEntity?
+
+    @Query("SELECT * FROM EpisodeEntity WHERE video_download_id = :downloadId LIMIT 1")
+    suspend fun episodeForVideoDownloadId(downloadId: Long): EpisodeEntity?
 
     @Query("SELECT * FROM EpisodeEntity WHERE podcast_id = :podcastId AND guid = :guid LIMIT 1")
     suspend fun episodeForGuid(podcastId: Long, guid: String): EpisodeEntity?
