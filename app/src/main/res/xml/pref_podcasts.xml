@@ -26,6 +26,26 @@
             android:summary="@string/pref_summary_prefer_streaming"
             android:title="@string/pref_title_prefer_streaming" />
 
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+            android:defaultValue="10"
+            android:key="podcast_skip_back_seconds"
+            android:layout="@layout/list_item_view_seekbar"
+            app:ateKey_pref_unit="s"
+            android:max="120"
+            android:summary="@string/pref_summary_podcast_skip_back"
+            android:title="@string/pref_title_podcast_skip_back"
+            app:showSeekBarValue="true" />
+
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+            android:defaultValue="30"
+            android:key="podcast_skip_forward_seconds"
+            android:layout="@layout/list_item_view_seekbar"
+            app:ateKey_pref_unit="s"
+            android:max="120"
+            android:summary="@string/pref_summary_podcast_skip_forward"
+            android:title="@string/pref_title_podcast_skip_forward"
+            app:showSeekBarValue="true" />
+
     </code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory>
 
 </androidx.preference.PreferenceScreen>

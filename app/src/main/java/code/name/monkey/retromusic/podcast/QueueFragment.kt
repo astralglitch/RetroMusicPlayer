@@ -56,6 +56,7 @@ class QueueFragment : AbsMainActivityFragment(R.layout.fragment_episode_list) {
      * ListAdapter reorder. */
     private var workingEpisodes: MutableList<EpisodeEntity> = mutableListOf()
     private lateinit var adapter: EpisodeAdapter
+    private val resumeSeeker = EpisodeResumeSeeker()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -68,6 +69,7 @@ class QueueFragment : AbsMainActivityFragment(R.layout.fragment_episode_list) {
 
         adapter = EpisodeAdapter(
             onPlay = { playFrom(it) },
+            onPlayPauseButton = { onEpisodePlayPauseButton(it) },
             onDownload = { playFrom(it) },
             onDeleteDownload = { playFrom(it) },
             onTogglePlayed = { episode, played ->
@@ -78,6 +80,7 @@ class QueueFragment : AbsMainActivityFragment(R.layout.fragment_episode_list) {
             },
             onRemoveFromQueue = { viewModel.removeFromQueue(it) }
         )
+        adapter.setPlaybackState(MusicPlayerRemote.currentSong.episodeIdOrNull(), MusicPlayerRemote.isPlaying)
         binding.recyclerView.apply {
             layoutManager = LinearLayoutManager(mainActivity)
             adapter = this@QueueFragment.adapter
@@ -136,12 +139,30 @@ class QueueFragment : AbsMainActivityFragment(R.layout.fragment_episode_list) {
             }
             val startIndex = episodes.indexOf(target).coerceAtLeast(0)
             if (songs.isNotEmpty()) {
+                resumeSeeker.arm(target)
                 MusicPlayerRemote.openQueue(songs, startIndex, true)
                 podcastCache[target.podcastId]?.let {
                     viewLifecycleOwner.lifecycleScope.activateVideoIfPreferred(target, it)
                 }
             }
         }
+    }
+
+    private fun onEpisodePlayPauseButton(episode: EpisodeEntity) {
+        if (MusicPlayerRemote.currentSong.episodeIdOrNull() == episode.id) {
+            if (MusicPlayerRemote.isPlaying) MusicPlayerRemote.pauseSong() else MusicPlayerRemote.resumePlaying()
+        } else {
+            playFrom(episode)
+        }
+    }
+
+    override fun onPlayingMetaChanged() {
+        adapter.setPlaybackState(MusicPlayerRemote.currentSong.episodeIdOrNull(), MusicPlayerRemote.isPlaying)
+        resumeSeeker.onPlayingMetaChanged()
+    }
+
+    override fun onPlayStateChanged() {
+        adapter.setPlaybackState(MusicPlayerRemote.currentSong.episodeIdOrNull(), MusicPlayerRemote.isPlaying)
     }
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {

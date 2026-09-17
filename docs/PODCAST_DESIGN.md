@@ -247,3 +247,52 @@ Nav and multi-queue are deliberately deferred. Immediate focus is the basics:
 
 Basic loop and the type-aware Now Playing screen (above) are both done. Next real
 milestones, roughly in order: nav/tabs, then multi-queue, then per-tab swipe actions.
+
+## Playback tracking: what's real vs. what's still a stopgap
+
+Three separate layers currently decide "what plays and where it resumes." Worth
+untangling before doing much more here, since they overlap in confusing ways:
+
+1. **The actual playback queue** (`MusicService.playingQueue`) -- one flat, in-memory
+   `List<Song>` the player literally advances through with Next/Previous. Whatever last
+   called `MusicPlayerRemote.openQueue(...)` replaced it wholesale.
+2. **The multi-queue feature** (above) -- persisted, user-curated `QueueEntity`/
+   `QueueItemEntity` rows. Tapping a row in `QueueFragment` copies that queue's episodes
+   into (1) and starts playing from the tapped position -- so today, (2) is really just
+   *one way to populate (1)*, not something the player is continuously aware of.
+3. **Per-episode saved position** (`EpisodeEntity.playbackPositionMs`) -- resumed
+   centrally now (see `MusicService.autoResumeEpisodePositionIfNeeded()`, added
+   2026-09-16) whenever a podcast episode becomes the current track, regardless of how
+   it got there: tapping a row, Next/Previous, notification/headset skip, or restoring
+   after a crash/relaunch. Skips episodes marked `played` on purpose -- see the code
+   comment for why (a played episode's saved position sits near the end of the file;
+   seeking there immediately auto-advances, which used to look like "tapping play on a
+   finished episode skips to the next one" -- 2026-09-16 bug).
+
+**The "context queue" idea (not built)**: right now, opening any episode list and
+hitting play just dumps that screen's current episode list into (1) as a one-off flat
+queue -- e.g. `PodcastDetailsFragment.playEpisode()` builds `displayedEpisodes.map {
+it.toSong(podcast) }` and calls `openQueue`. That's *closer* to what people expect than
+a single global queue, but it's static: built once at tap-time, from whatever sort/
+filter was active on screen *then*. It doesn't track "I'm still logically browsing this
+podcast's episode list sorted newest-first" as a live, referenceable context distinct
+from queues (1) and (2).
+
+Vision: a third notion, a **context queue** -- an ephemeral, screen-derived Next/
+Previous ordering that:
+- Is created implicitly whenever playback starts from a browsing screen (a podcast's
+  episode list, Favorites, History, a search-result list, etc.), capturing that
+  screen's *current* sort/filter as the ordering, not a snapshot of episode IDs.
+- Stays live: if the user changes that screen's sort (e.g. oldest-first) while still
+  playing from it, Next/Previous should reflect the new order without restarting
+  playback.
+- Is distinct from both (1) (the literal player queue, which the context queue would
+  drive under the hood) and (2) (the user's own named, persisted queues) -- adding an
+  episode to a named queue from a context-queue session is a deliberate, separate
+  action ("save this into my queue"), not something that happens implicitly.
+- Needs a way to tell, at any moment, "what's actually driving Next/Previous right
+  now" -- a named queue, a context queue (and if so, from which screen/sort), or
+  neither (a one-off single-episode play). Not designed yet; probably a small enum/
+  sealed-class on `MusicService` alongside `playingQueue` itself.
+- **Status:** vision only, not designed in detail or built. Today's flat-queue-per-tap
+  behavior is a reasonable stopgap and shouldn't block on this.

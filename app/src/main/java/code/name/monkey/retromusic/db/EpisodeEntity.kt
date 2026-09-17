@@ -52,6 +52,11 @@ data class EpisodeEntity(
     @ColumnInfo(name = "duration_ms")
     val durationMs: Long = 0,
 
+    /** From the feed's `<enclosure length>`, or measured from the actual file once downloaded /
+     * folder-scanned -- 0 when unknown. Drives the episode list's size label. */
+    @ColumnInfo(name = "file_size_bytes")
+    val fileSizeBytes: Long = 0,
+
     val description: String? = null,
 
     /** User-authored notes, distinct from the feed-supplied [description]. */

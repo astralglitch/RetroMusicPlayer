@@ -33,6 +33,8 @@ data class ParsedEpisode(
     val enclosureUrl: String,
     val pubDate: Long,
     val durationMs: Long,
+    /** From the `<enclosure length="...">` attribute, in bytes -- 0 when the feed omits it. */
+    val fileSizeBytes: Long,
     val description: String?,
     /** Set when the enclosure's own `type` attribute starts with "video/" -- see
      * PodcastRepository, which uses this to pick `MediaItemType.PODCAST_VIDEO` over
@@ -72,6 +74,7 @@ object PodcastFeedParser {
         var itemVideoUrl: String? = null
         var itemPubDate: Long = 0
         var itemDurationMs: Long = 0
+        var itemFileSizeBytes: Long = 0
         var itemDescription: String? = null
 
         var eventType = parser.eventType
@@ -88,6 +91,7 @@ object PodcastFeedParser {
                             itemVideoUrl = null
                             itemPubDate = 0
                             itemDurationMs = 0
+                            itemFileSizeBytes = 0
                             itemDescription = null
                         }
 
@@ -112,6 +116,7 @@ object PodcastFeedParser {
                             if (type?.startsWith("video/") == true) {
                                 itemVideoUrl = itemEnclosureUrl
                             }
+                            itemFileSizeBytes = parser.getAttributeValue(null, "length")?.toLongOrNull() ?: 0
                         }
 
                         "duration" -> if (inItem) itemDurationMs = parseItunesDuration(parser.nextTextSafe())
@@ -141,6 +146,7 @@ object PodcastFeedParser {
                                     enclosureUrl = url,
                                     pubDate = itemPubDate,
                                     durationMs = itemDurationMs,
+                                    fileSizeBytes = itemFileSizeBytes,
                                     description = itemDescription,
                                     videoUrl = itemVideoUrl
                                 )

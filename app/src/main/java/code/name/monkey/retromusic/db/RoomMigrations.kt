@@ -191,3 +191,11 @@ val MIGRATION_32_33 = object : Migration(32, 33) {
         database.execSQL("ALTER TABLE `PodcastEntity` ADD COLUMN `auto_download_video` INTEGER")
     }
 }
+
+val MIGRATION_33_34 = object : Migration(33, 34) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            "ALTER TABLE `EpisodeEntity` ADD COLUMN `file_size_bytes` INTEGER NOT NULL DEFAULT 0"
+        )
+    }
+}

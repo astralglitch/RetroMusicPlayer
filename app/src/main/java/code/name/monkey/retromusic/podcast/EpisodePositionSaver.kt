@@ -29,16 +29,32 @@ class EpisodePositionSaver(private val episodeDao: EpisodeDao) {
 
     private val scope = CoroutineScope(Dispatchers.IO)
 
-    fun save(song: Song, positionMs: Int) {
+    /**
+     * @param actualDurationMs the player-measured duration of the currently loaded media, when
+     * known. Prefer this over `song.duration` (feed-reported `<itunes:duration>`, or 0 for
+     * folder-scanned episodes): feed metadata can be missing or wrong, which previously caused
+     * episodes to either never show progress or get auto-marked "played" after only a few
+     * minutes. Also backfills `EpisodeEntity.durationMs` so the episode list can render a real
+     * progress bar instead of falling back to an indeterminate one.
+     */
+    fun save(song: Song, positionMs: Int, actualDurationMs: Int = 0) {
         val episodeId = song.episodeIdOrNull() ?: return
+        val durationMs: Long = if (actualDurationMs > 0) actualDurationMs.toLong() else song.duration
         scope.launch {
             episodeDao.updatePlaybackPosition(episodeId, positionMs.toLong())
+            if (actualDurationMs > 0 && actualDurationMs.toLong() != song.duration) {
+                episodeDao.updateDuration(episodeId, actualDurationMs.toLong())
+            }
             // Auto-mark as played on natural completion, mirroring how podcast apps treat
-            // "finished listening" -- duration comes from the Song (set from durationMs when
-            // queued), so this is skipped for episodes with unknown duration.
-            val remainingMs = song.duration - positionMs
-            if (song.duration > 0 && remainingMs <= song.duration * 0.05) {
-                episodeDao.updatePlayed(episodeId, true)
+            // "finished listening" -- and auto-*un*mark it the moment playback is meaningfully
+            // away from the end again (e.g. restarting a played episode from 0), so the episode
+            // list's "Played" label/greyout and progress bar don't get stuck reflecting a
+            // completion that's no longer true. This only runs while actually playing that
+            // episode (see the callers), so it never fights a deliberate manual "mark as played"
+            // on an episode the user isn't currently listening to.
+            if (durationMs > 0) {
+                val remainingMs = durationMs - positionMs
+                episodeDao.updatePlayed(episodeId, remainingMs <= durationMs * 0.05)
             }
         }
     }

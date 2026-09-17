@@ -56,9 +56,7 @@ class PodcastDetailsFragment : AbsMainActivityFragment(R.layout.fragment_podcast
 
     private lateinit var episodeAdapter: EpisodeAdapter
 
-    /** Set right before opening a queue on an episode; consumed once its metadata loads. */
-    private var pendingResumeEpisodeId: Long? = null
-    private var pendingResumePositionMs: Int = 0
+    private val resumeSeeker = EpisodeResumeSeeker()
 
     private enum class EpisodeFilter { ALL, DOWNLOADED, IN_PROGRESS }
 
@@ -82,6 +80,7 @@ class PodcastDetailsFragment : AbsMainActivityFragment(R.layout.fragment_podcast
 
         episodeAdapter = EpisodeAdapter(
             onPlay = { openEpisodeDetails(it) },
+            onPlayPauseButton = { onEpisodePlayPauseButton(it) },
             onDownload = { viewModel.download(it) },
             onDeleteDownload = { viewModel.deleteDownload(it) },
             onTogglePlayed = { episode, played -> viewModel.setPlayed(episode, played) },
@@ -107,7 +106,7 @@ class PodcastDetailsFragment : AbsMainActivityFragment(R.layout.fragment_podcast
             isNestedScrollingEnabled = false
             adapter = episodeAdapter
         }
-        episodeAdapter.setCurrentEpisodeId(MusicPlayerRemote.currentSong.episodeIdOrNull())
+        episodeAdapter.setPlaybackState(MusicPlayerRemote.currentSong.episodeIdOrNull(), MusicPlayerRemote.isPlaying)
 
         binding.resumeAction.setOnClickListener { resumePlayback() }
 
@@ -181,24 +180,29 @@ class PodcastDetailsFragment : AbsMainActivityFragment(R.layout.fragment_podcast
         val startPosition = episodes.indexOf(episode).coerceAtLeast(0)
         val queue = episodes.map { it.toSong(podcast) }
 
-        // openQueue is async (goes through the service binder), so we can't seek right after
-        // calling it -- the new track isn't loaded yet. Instead, stash the resume target and
-        // consume it in onPlayingMetaChanged() once the service reports the episode is current.
-        if (episode.playbackPositionMs > 0) {
-            pendingResumeEpisodeId = episode.id
-            pendingResumePositionMs = episode.playbackPositionMs.toInt()
-        }
+        resumeSeeker.arm(episode)
         MusicPlayerRemote.openQueue(queue, startPosition, true)
         viewLifecycleOwner.lifecycleScope.activateVideoIfPreferred(episode, podcast)
     }
 
-    override fun onPlayingMetaChanged() {
-        episodeAdapter.setCurrentEpisodeId(MusicPlayerRemote.currentSong.episodeIdOrNull())
-        val targetEpisodeId = pendingResumeEpisodeId ?: return
-        if (MusicPlayerRemote.currentSong.episodeIdOrNull() == targetEpisodeId) {
-            MusicPlayerRemote.seekTo(pendingResumePositionMs)
-            pendingResumeEpisodeId = null
+    /** The rightmost row button -- toggles pause/resume if this episode is already loaded,
+     * otherwise starts it fresh (which arms the resume-to-saved-position seek same as tapping
+     * "Resume" above). */
+    private fun onEpisodePlayPauseButton(episode: EpisodeEntity) {
+        if (MusicPlayerRemote.currentSong.episodeIdOrNull() == episode.id) {
+            if (MusicPlayerRemote.isPlaying) MusicPlayerRemote.pauseSong() else MusicPlayerRemote.resumePlaying()
+        } else {
+            playEpisode(episode)
         }
+    }
+
+    override fun onPlayingMetaChanged() {
+        episodeAdapter.setPlaybackState(MusicPlayerRemote.currentSong.episodeIdOrNull(), MusicPlayerRemote.isPlaying)
+        resumeSeeker.onPlayingMetaChanged()
+    }
+
+    override fun onPlayStateChanged() {
+        episodeAdapter.setPlaybackState(MusicPlayerRemote.currentSong.episodeIdOrNull(), MusicPlayerRemote.isPlaying)
     }
 
     override fun onResume() {

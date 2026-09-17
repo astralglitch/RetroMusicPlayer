@@ -119,8 +119,13 @@ import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Runnable
+import code.name.monkey.retromusic.db.EpisodeDao
+import code.name.monkey.retromusic.db.PodcastDao
+import code.name.monkey.retromusic.db.PodcastEntity
 import code.name.monkey.retromusic.podcast.EpisodePositionSaver
 import code.name.monkey.retromusic.podcast.VideoLinkResolver
+import code.name.monkey.retromusic.podcast.episodeIdOrNull
+import code.name.monkey.retromusic.podcast.toSong
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -311,10 +316,16 @@ class MusicService : MediaBrowserServiceCompat(),
     private val episodePositionSaver by lazy {
         get<EpisodePositionSaver>(EpisodePositionSaver::class.java)
     }
+    private val episodeDao by lazy {
+        get<EpisodeDao>(EpisodeDao::class.java)
+    }
+    private val podcastDao by lazy {
+        get<PodcastDao>(PodcastDao::class.java)
+    }
     private val episodePositionSaveTicker = object : Runnable {
         override fun run() {
             if (isPlaying) {
-                episodePositionSaver.save(currentSong, songProgressMillis)
+                episodePositionSaver.save(currentSong, songProgressMillis, songDurationMillis)
             }
             uiThreadHandler?.postDelayed(this, EPISODE_POSITION_SAVE_INTERVAL_MS)
         }
@@ -382,7 +393,7 @@ class MusicService : MediaBrowserServiceCompat(),
     override fun onDestroy() {
         uiThreadHandler?.removeCallbacks(episodePositionSaveTicker)
         if (songProgressMillis > 0) {
-            episodePositionSaver.save(currentSong, songProgressMillis)
+            episodePositionSaver.save(currentSong, songProgressMillis, songDurationMillis)
         }
         LocalBroadcastManager.getInstance(this).unregisterReceiver(widgetIntentReceiver)
         LocalBroadcastManager.getInstance(this).unregisterReceiver(updateFavoriteReceiver)
@@ -408,6 +419,18 @@ class MusicService : MediaBrowserServiceCompat(),
         unregisterOnSharedPreferenceChangedListener(this)
         wakeLock?.release()
         sendBroadcast(Intent("$RETRO_MUSIC_PACKAGE_NAME.RETRO_MUSIC_SERVICE_DESTROYED"))
+    }
+
+    // Swiping the app away from recents does not call onDestroy() promptly (or, if the OS
+    // decides to kill the process outright rather than stop the service cleanly, may not call
+    // it at all) -- flush the current position immediately so progress isn't lost, rather than
+    // relying solely on the periodic episodePositionSaveTicker or a future pause/track-change.
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        if (songProgressMillis > 0) {
+            savePositionInTrack()
+            episodePositionSaver.save(currentSong, songProgressMillis, songDurationMillis)
+        }
     }
 
     private fun acquireWakeLock() {
@@ -992,12 +1015,31 @@ class MusicService : MediaBrowserServiceCompat(),
                 if (restoredQueue.size > 0 && restoredQueue.size == restoredOriginalQueue.size && restoredPosition != -1) {
                     originalPlayingQueue = ArrayList(restoredOriginalQueue)
                     playingQueue = ArrayList(restoredQueue)
+                    // MusicPlaybackQueueStore's SQLite schema is music-only (title/artist/album/
+                    // duration/etc.) and was never extended with podcast-specific columns, so a
+                    // restored episode Song comes back with artworkUrl/videoUrl/videoSourceUrl
+                    // all null -- the Now Playing screen then shows no thumbnail and no video
+                    // toggle until a fresh play rebuilds the Song properly. Rehydrate podcast
+                    // fields here instead of touching that shared music-side store/schema.
+                    rehydratePodcastSongs(originalPlayingQueue)
+                    rehydratePodcastSongs(playingQueue)
                     position = restoredPosition
+                    // SAVED_POSITION_IN_TRACK is only written on pause/track-change, so after a
+                    // crash or a task-kill that beat the next write it can be stale or 0 even
+                    // though the podcast episode's own Room position (kept fresh by the 5s
+                    // episodePositionSaveTicker) has the real progress. Prefer whichever is
+                    // further along.
+                    val episodeId = getSongAt(position).episodeIdOrNull()
+                    val episodePositionMs = if (episodeId != null) {
+                        episodeDao.episodeById(episodeId)?.playbackPositionMs ?: 0L
+                    } else 0L
+                    val seekPositionMs =
+                        maxOf(restoredPositionInTrack, episodePositionMs.toInt())
                     withContext(Main) {
                         openCurrent {
                             prepareNext()
-                            if (restoredPositionInTrack > 0) {
-                                seek(restoredPositionInTrack)
+                            if (seekPositionMs > 0) {
+                                seek(seekPositionMs)
                             }
                             notHandledMetaChangedForCurrentTrack = true
                             sendChangeInternal(META_CHANGED)
@@ -1014,6 +1056,20 @@ class MusicService : MediaBrowserServiceCompat(),
                 }
             }
             queuesRestored = true
+        }
+    }
+
+    /** Replaces any podcast-episode `Song` in [songs] with a freshly-built one from its
+     * `EpisodeEntity`/`PodcastEntity` (in place, preserving order/index) -- see the call site in
+     * [restoreQueuesAndPositionIfNecessary] for why this is needed after a cold restore. */
+    private suspend fun rehydratePodcastSongs(songs: MutableList<Song>) {
+        val podcastCache = mutableMapOf<Long, PodcastEntity?>()
+        for (i in songs.indices) {
+            val episodeId = songs[i].episodeIdOrNull() ?: continue
+            val episode = episodeDao.episodeById(episodeId) ?: continue
+            val podcast = podcastCache.getOrPut(episode.podcastId) { podcastDao.podcastById(episode.podcastId) }
+                ?: continue
+            songs[i] = episode.toSong(podcast)
         }
     }
 
@@ -1190,7 +1246,7 @@ class MusicService : MediaBrowserServiceCompat(),
                 val isPlaying = isPlaying
                 if (!isPlaying && songProgressMillis > 0) {
                     savePositionInTrack()
-                    episodePositionSaver.save(currentSong, songProgressMillis)
+                    episodePositionSaver.save(currentSong, songProgressMillis, songDurationMillis)
                 }
                 songPlayCountHelper.notifyPlayStateChanged(isPlaying)
                 playingNotification?.setPlaying(isPlaying)
@@ -1293,7 +1349,25 @@ class MusicService : MediaBrowserServiceCompat(),
             false
         }
         playbackManager.setDataSource(currentSong, force) { success ->
+            if (success) autoResumeEpisodePositionIfNeeded()
             completion(success)
+        }
+    }
+
+    /** Central resume-to-saved-position for podcast episodes -- covers every way a track can
+     * become current (tapping play, Next/Previous, notification/headset skip, restoring on
+     * launch), not just the fragment-level "tap an episode row" flow (see EpisodeResumeSeeker,
+     * which only fires for that one path and can be superseded by this). Skips a `played`
+     * episode on purpose: its playbackPositionMs typically sits at/near the end of the file, and
+     * seeking there would immediately auto-advance to the next track -- a "played" episode should
+     * restart from 0, not resume near its end. */
+    private fun autoResumeEpisodePositionIfNeeded() {
+        val episodeId = currentSong.episodeIdOrNull() ?: return
+        serviceScope.launch {
+            val episode = episodeDao.episodeById(episodeId) ?: return@launch
+            if (!episode.played && episode.playbackPositionMs > 0) {
+                seek(episode.playbackPositionMs.toInt())
+            }
         }
     }
 

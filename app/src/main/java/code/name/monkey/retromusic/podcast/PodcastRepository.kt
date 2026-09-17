@@ -245,6 +245,10 @@ class PodcastRepository(
                 videoUrl = parsed.videoUrl,
                 pubDate = parsed.pubDate,
                 durationMs = parsed.durationMs,
+                // Feeds frequently omit <enclosure length> (0), or a re-fetch after download
+                // could regress a value we already measured from the actual file -- keep
+                // whichever is known.
+                fileSizeBytes = parsed.fileSizeBytes.takeIf { it > 0 } ?: existing?.fileSizeBytes ?: 0,
                 description = parsed.description,
                 userNotes = existing?.userNotes,
                 localFilePath = existing?.localFilePath,

@@ -233,11 +233,16 @@ class EpisodeDownloadManager(
             }
             val succeeded = status == DownloadManager.STATUS_SUCCESSFUL
             val localPath = if (succeeded) cursor.getString(localUriIndex)?.toUri()?.path else null
+            // The feed's <enclosure length> is often missing/wrong -- the actual downloaded file
+            // is authoritative, same reasoning as EpisodePositionSaver preferring measured
+            // duration over feed metadata.
+            val fileSizeBytes = localPath?.let { File(it).length() }?.takeIf { it > 0 }
 
             episodeDao.upsertEpisode(
                 episode.copy(
                     downloadState = if (succeeded) EpisodeDownloadState.DOWNLOADED else EpisodeDownloadState.FAILED,
-                    localFilePath = localPath
+                    localFilePath = localPath,
+                    fileSizeBytes = fileSizeBytes ?: episode.fileSizeBytes
                 )
             )
         }

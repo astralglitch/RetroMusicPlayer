@@ -63,6 +63,16 @@ interface EpisodeDao {
     @Query("UPDATE EpisodeEntity SET playback_position_ms = :positionMs WHERE id = :episodeId")
     suspend fun updatePlaybackPosition(episodeId: Long, positionMs: Long)
 
+    /** Backfills the real duration once the player has measured it -- feed-reported
+     * `<itunes:duration>` can be missing/wrong, and folder-scanned episodes never had one. */
+    @Query("UPDATE EpisodeEntity SET duration_ms = :durationMs WHERE id = :episodeId")
+    suspend fun updateDuration(episodeId: Long, durationMs: Long)
+
+    /** Backfills the real file size once a download completes / a local file is scanned --
+     * mirrors [updateDuration] since feed-reported `<enclosure length>` is often missing. */
+    @Query("UPDATE EpisodeEntity SET file_size_bytes = :fileSizeBytes WHERE id = :episodeId")
+    suspend fun updateFileSize(episodeId: Long, fileSizeBytes: Long)
+
     @Query("DELETE FROM EpisodeEntity WHERE podcast_id = :podcastId")
     suspend fun deleteEpisodesForPodcast(podcastId: Long)
 

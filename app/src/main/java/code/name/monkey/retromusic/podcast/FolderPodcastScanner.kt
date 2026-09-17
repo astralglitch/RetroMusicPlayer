@@ -43,6 +43,7 @@ object FolderPodcastScanner {
                     enclosureUrl = uri,
                     pubDate = file.lastModified(),
                     durationMs = 0,
+                    fileSizeBytes = file.length(),
                     description = null
                 )
             }

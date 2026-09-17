@@ -52,11 +52,12 @@
                 android:src="@drawable/ic_undo" />
 
             <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/skipBackLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="30"
                 android:textAppearance="?attr/textAppearanceLabelSmall"
-                android:textColor="?android:attr/textColorSecondary" />
+                android:textColor="?android:attr/textColorSecondary"
+                tools:text="10" />
         </LinearLayout>
 
         <LinearLayout
@@ -77,11 +78,12 @@
                 android:src="@drawable/ic_redo" />
 
             <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/skipForwardLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="10"
                 android:textAppearance="?attr/textAppearanceLabelSmall"
-                android:textColor="?android:attr/textColorSecondary" />
+                android:textColor="?android:attr/textColorSecondary"
+                tools:text="30" />
         </LinearLayout>
 
         <LinearLayout
@@ -91,7 +93,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical"
-            android:visibility="gone"
+            android:visibility="invisible"
             tools:visibility="visible">
 
             <FrameLayout

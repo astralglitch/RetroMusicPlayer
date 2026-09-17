@@ -91,10 +91,13 @@
     <string name="podcast_download">Download episode</string>
     <string name="podcast_delete_download">Delete downloaded episode</string>
     <string name="podcast_cancel_download">Cancel download</string>
-    <string name="podcast_skip_back">Skip back 10 seconds</string>
-    <string name="podcast_skip_forward">Skip forward 30 seconds</string>
+    <string name="podcast_skip_back">Skip back</string>
+    <string name="podcast_skip_forward">Skip forward</string>
+    <string name="podcast_skip_back_seconds">Skip back %d seconds</string>
+    <string name="podcast_skip_forward_seconds">Skip forward %d seconds</string>
     <string name="podcast_play">Play episode</string>
     <string name="podcast_pause">Pause episode</string>
+    <string name="podcast_resume_episode">Resume episode</string>
     <string name="podcast_episodes">Episodes</string>
     <string name="podcast_resume">Resume</string>
     <string name="podcast_filter">Filter episodes</string>
@@ -137,6 +140,10 @@
     <string name="podcast_target_queue">New episodes go to…</string>
     <string name="podcast_target_queue_default">Default queue</string>
     <string name="pref_header_podcast_playback">Playback</string>
+    <string name="pref_title_podcast_skip_back">Skip back</string>
+    <string name="pref_summary_podcast_skip_back">How far the skip-back button rewinds</string>
+    <string name="pref_title_podcast_skip_forward">Skip forward</string>
+    <string name="pref_summary_podcast_skip_forward">How far the skip-forward button advances</string>
     <string name="pref_title_prefer_streaming">Prefer streaming</string>
     <string name="pref_summary_prefer_streaming">Show Play on an episode\'s page even if it isn\'t downloaded yet. Off by default to encourage downloading for offline listening -- you can still stream from the overflow menu or an episode\'s long-press menu.</string>
     <string name="about_album_label">About %s</string>

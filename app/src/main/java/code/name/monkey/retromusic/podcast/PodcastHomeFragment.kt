@@ -51,6 +51,7 @@ class PodcastHomeFragment : AbsMainActivityFragment(R.layout.fragment_podcast_ho
     private val binding get() = _binding!!
 
     private val viewModel by viewModel<PodcastHomeViewModel>()
+    private val resumeSeeker = EpisodeResumeSeeker()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -133,6 +134,7 @@ class PodcastHomeFragment : AbsMainActivityFragment(R.layout.fragment_podcast_ho
      * default that otherwise hides Play until an episode is downloaded. */
     private fun streamEpisode(episode: EpisodeEntity) {
         val podcast = viewModel.podcasts.value?.firstOrNull { it.id == episode.podcastId } ?: return
+        resumeSeeker.arm(episode)
         MusicPlayerRemote.openQueue(listOf(episode.toSong(podcast)), 0, true)
         viewLifecycleOwner.lifecycleScope.activateVideoIfPreferred(episode, podcast)
     }
@@ -158,6 +160,10 @@ class PodcastHomeFragment : AbsMainActivityFragment(R.layout.fragment_podcast_ho
 
     private fun openSubscriptions() {
         findNavController().navigate(R.id.podcasts_fragment)
+    }
+
+    override fun onPlayingMetaChanged() {
+        resumeSeeker.onPlayingMetaChanged()
     }
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {}

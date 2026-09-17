@@ -51,6 +51,8 @@ abstract class AbsEpisodeListFragment(
     private val binding get() = _binding!!
 
     private val viewModel by viewModel<EpisodeListViewModel> { parametersOf(kind) }
+    private val resumeSeeker = EpisodeResumeSeeker()
+    private var episodeAdapter: EpisodeAdapter? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -73,8 +75,9 @@ abstract class AbsEpisodeListFragment(
     private fun updateAdapter() {
         val episodes = viewModel.episodes.value.orEmpty()
         val podcastsById = viewModel.podcasts.value.orEmpty().associateBy { it.id }
-        binding.recyclerView.adapter = EpisodeAdapter(
+        episodeAdapter = EpisodeAdapter(
             onPlay = ::openEpisode,
+            onPlayPauseButton = ::onEpisodePlayPauseButton,
             onDownload = { viewModel.download(it) },
             onDeleteDownload = { viewModel.deleteDownload(it) },
             onTogglePlayed = { episode, played -> viewModel.setPlayed(episode, played) },
@@ -82,7 +85,11 @@ abstract class AbsEpisodeListFragment(
             onStream = ::streamEpisode,
             onAddToQueue = { viewModel.addToActiveQueue(it) },
             podcastsById = podcastsById
-        ).apply { submitList(episodes) }
+        ).apply {
+            submitList(episodes)
+            setPlaybackState(MusicPlayerRemote.currentSong.episodeIdOrNull(), MusicPlayerRemote.isPlaying)
+        }
+        binding.recyclerView.adapter = episodeAdapter
         binding.emptyText.isVisible = episodes.isEmpty()
     }
 
@@ -98,8 +105,29 @@ abstract class AbsEpisodeListFragment(
      * default that otherwise hides Play until an episode is downloaded. */
     private fun streamEpisode(episode: EpisodeEntity) {
         val podcast = viewModel.podcasts.value?.firstOrNull { it.id == episode.podcastId } ?: return
+        resumeSeeker.arm(episode)
         MusicPlayerRemote.openQueue(listOf(episode.toSong(podcast)), 0, true)
         viewLifecycleOwner.lifecycleScope.activateVideoIfPreferred(episode, podcast)
+    }
+
+    /** The rightmost row button -- toggles pause/resume if this episode is already loaded,
+     * otherwise starts it (via the same path as [streamEpisode], resuming to its saved
+     * position). */
+    private fun onEpisodePlayPauseButton(episode: EpisodeEntity) {
+        if (MusicPlayerRemote.currentSong.episodeIdOrNull() == episode.id) {
+            if (MusicPlayerRemote.isPlaying) MusicPlayerRemote.pauseSong() else MusicPlayerRemote.resumePlaying()
+        } else {
+            streamEpisode(episode)
+        }
+    }
+
+    override fun onPlayingMetaChanged() {
+        episodeAdapter?.setPlaybackState(MusicPlayerRemote.currentSong.episodeIdOrNull(), MusicPlayerRemote.isPlaying)
+        resumeSeeker.onPlayingMetaChanged()
+    }
+
+    override fun onPlayStateChanged() {
+        episodeAdapter?.setPlaybackState(MusicPlayerRemote.currentSong.episodeIdOrNull(), MusicPlayerRemote.isPlaying)
     }
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {}

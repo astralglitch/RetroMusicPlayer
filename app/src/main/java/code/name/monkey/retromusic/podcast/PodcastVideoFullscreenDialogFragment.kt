@@ -31,6 +31,7 @@ import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.DialogPodcastVideoFullscreenBinding
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.helper.MusicProgressViewUpdateHelper
+import code.name.monkey.retromusic.util.PreferenceUtil
 
 /**
  * Fullscreen video playback -- an immersive overlay within the same screen/Activity rather than
@@ -117,8 +118,8 @@ class PodcastVideoFullscreenDialogFragment : DialogFragment(), MusicProgressView
         binding.closeButton.setOnClickListener { dismiss() }
         binding.fullscreenAspectButton.setOnClickListener { toggleAspectMode() }
         binding.fullscreenPlayPauseButton.setOnClickListener { togglePlayPause() }
-        binding.fullscreenSkipBackButton.setOnClickListener { skip(-SKIP_BACK_MS) }
-        binding.fullscreenSkipForwardButton.setOnClickListener { skip(SKIP_FORWARD_MS) }
+        binding.fullscreenSkipBackButton.setOnClickListener { skip(-PreferenceUtil.podcastSkipBackSeconds * 1000) }
+        binding.fullscreenSkipForwardButton.setOnClickListener { skip(PreferenceUtil.podcastSkipForwardSeconds * 1000) }
         binding.fullscreenSeekBar.max = MusicPlayerRemote.songDurationMillis.coerceAtLeast(0)
         binding.fullscreenSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {}
@@ -200,7 +201,5 @@ class PodcastVideoFullscreenDialogFragment : DialogFragment(), MusicProgressView
 
     companion object {
         const val TAG = "PodcastVideoFullscreenDialogFragment"
-        private const val SKIP_BACK_MS = 30_000
-        private const val SKIP_FORWARD_MS = 10_000
     }
 }

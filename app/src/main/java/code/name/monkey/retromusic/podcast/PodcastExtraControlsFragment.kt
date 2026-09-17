@@ -24,6 +24,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.preference.PreferenceManager
 import code.name.monkey.retromusic.PLAYBACK_SPEED
+import code.name.monkey.retromusic.PODCAST_SKIP_BACK_SECONDS
+import code.name.monkey.retromusic.PODCAST_SKIP_FORWARD_SECONDS
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.FragmentPodcastExtraControlsBinding
 import code.name.monkey.retromusic.extensions.showToast
@@ -62,15 +64,17 @@ class PodcastExtraControlsFragment : AbsMusicServiceFragment(R.layout.fragment_p
     private val speedPreferenceListener =
         SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == PLAYBACK_SPEED) updateSpeedLabel()
+            if (key == PODCAST_SKIP_BACK_SECONDS || key == PODCAST_SKIP_FORWARD_SECONDS) updateSkipLabels()
         }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentPodcastExtraControlsBinding.bind(view)
 
-        binding.skipBackButton.setOnClickListener { skip(-SKIP_BACK_MS) }
-        binding.skipForwardButton.setOnClickListener { skip(SKIP_FORWARD_MS) }
+        binding.skipBackButton.setOnClickListener { skip(-PreferenceUtil.podcastSkipBackSeconds * 1000) }
+        binding.skipForwardButton.setOnClickListener { skip(PreferenceUtil.podcastSkipForwardSeconds * 1000) }
         binding.speedButton.setOnClickListener { cycleSpeed() }
+        updateSkipLabels()
 
         updateVideoToggleVisibility()
         binding.videoToggleButton.setOnClickListener { onVideoToggleClicked() }
@@ -93,6 +97,7 @@ class PodcastExtraControlsFragment : AbsMusicServiceFragment(R.layout.fragment_p
         PreferenceManager.getDefaultSharedPreferences(requireContext())
             .registerOnSharedPreferenceChangeListener(speedPreferenceListener)
         updateSpeedLabel()
+        updateSkipLabels()
     }
 
     override fun onStop() {
@@ -108,7 +113,12 @@ class PodcastExtraControlsFragment : AbsMusicServiceFragment(R.layout.fragment_p
 
     private fun updateVideoToggleVisibility() {
         val song = MusicPlayerRemote.currentSong
-        binding.videoToggleContainer.isVisible = song.videoUrl != null || song.videoSourceUrl != null
+        val hasVideo = song.videoUrl != null || song.videoSourceUrl != null
+        // isInvisible, not isVisible/isGone -- this sits in a row of equal-weight columns
+        // alongside speed/skip-back/skip-forward, and hiding it with GONE let the other three
+        // reflow to fill the freed space, shifting their positions every time the current
+        // episode's video availability changed.
+        binding.videoToggleContainer.isInvisible = !hasVideo
     }
 
     /** Turning off is always immediate. Turning on: a direct feed video (or an already-resolved
@@ -175,14 +185,21 @@ class PodcastExtraControlsFragment : AbsMusicServiceFragment(R.layout.fragment_p
         binding.speedLabel.text = "%.2f".format(PreferenceUtil.playbackSpeed)
     }
 
+    private fun updateSkipLabels() {
+        val back = PreferenceUtil.podcastSkipBackSeconds
+        val forward = PreferenceUtil.podcastSkipForwardSeconds
+        binding.skipBackLabel.text = back.toString()
+        binding.skipForwardLabel.text = forward.toString()
+        binding.skipBackButton.contentDescription = getString(R.string.podcast_skip_back_seconds, back)
+        binding.skipForwardButton.contentDescription = getString(R.string.podcast_skip_forward_seconds, forward)
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
     }
 
     companion object {
-        private const val SKIP_BACK_MS = 30_000
-        private const val SKIP_FORWARD_MS = 10_000
         private val SPEED_STEPS = floatArrayOf(1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
     }
 }

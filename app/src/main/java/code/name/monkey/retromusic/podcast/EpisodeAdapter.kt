@@ -14,7 +14,9 @@
  */
 package code.name.monkey.retromusic.podcast
 
+import android.content.res.ColorStateList
 import android.graphics.Typeface
+import android.text.format.Formatter
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.MenuItem
@@ -32,6 +34,7 @@ import code.name.monkey.retromusic.db.EpisodeDownloadState
 import code.name.monkey.retromusic.db.EpisodeEntity
 import code.name.monkey.retromusic.db.PodcastEntity
 import code.name.monkey.retromusic.extensions.accentColor
+import com.google.android.material.color.MaterialColors
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import java.text.DateFormat
@@ -39,6 +42,10 @@ import java.util.Date
 
 class EpisodeAdapter(
     private val onPlay: (EpisodeEntity) -> Unit,
+    /** The rightmost row button -- actually starts/resumes/pauses playback (unlike [onPlay],
+     * which several lists instead use to navigate to the episode's own details screen). Defaults
+     * to [onPlay] for lists that haven't wired up real play/pause control yet. */
+    private val onPlayPauseButton: (EpisodeEntity) -> Unit = onPlay,
     private val onDownload: (EpisodeEntity) -> Unit,
     private val onDeleteDownload: (EpisodeEntity) -> Unit,
     private val onTogglePlayed: (EpisodeEntity, Boolean) -> Unit,
@@ -73,6 +80,10 @@ class EpisodeAdapter(
      * mirroring how SongAdapter compares against MusicPlayerRemote.currentSong. */
     private var currentEpisodeId: Long? = null
 
+    /** Whether [currentEpisodeId] is actively playing (vs. loaded-but-paused) -- drives the
+     * rightmost button showing a pause icon instead of play. */
+    private var isCurrentEpisodePlaying: Boolean = false
+
     fun updateProgress(progress: Map<Long, Int>) {
         progressByEpisodeId = progress
         progress.keys.forEach { episodeId ->
@@ -81,11 +92,12 @@ class EpisodeAdapter(
         }
     }
 
-    fun setCurrentEpisodeId(episodeId: Long?) {
-        if (currentEpisodeId == episodeId) return
+    fun setPlaybackState(episodeId: Long?, isPlaying: Boolean) {
+        if (currentEpisodeId == episodeId && isCurrentEpisodePlaying == isPlaying) return
         val previousId = currentEpisodeId
         currentEpisodeId = episodeId
-        listOf(previousId, episodeId).forEach { id ->
+        isCurrentEpisodePlaying = isPlaying
+        listOfNotNull(previousId, episodeId).distinct().forEach { id ->
             val position = currentList.indexOfFirst { it.id == id }
             if (position >= 0) notifyItemChanged(position)
         }
@@ -162,6 +174,8 @@ class EpisodeAdapter(
                 binding.podcastThumbnailContainer.isVisible = false
             }
 
+            // A plain, non-interactive glyph -- not a second button, so it's kept visually
+            // quieter (smaller, dimmer) than the actual tap targets to its right.
             binding.videoIndicator.isVisible = episode.videoUrl != null || episode.videoSourceUrl != null
 
             binding.episodeTitle.text = episode.title
@@ -170,29 +184,44 @@ class EpisodeAdapter(
             } else {
                 ""
             }
+            // "Downloaded"/"In progress" used to be spelled out here, but both are already
+            // conveyed by the row's own progress bar and the rightmost button's icon state (play
+            // arrow visible + download icon gone means downloaded) -- use the freed space for the
+            // file size instead. DOWNLOADING/FAILED still need text since nothing else surfaces
+            // percent-complete or a failure.
+            val sizeLabel = if (episode.fileSizeBytes > 0) {
+                Formatter.formatShortFileSize(binding.root.context, episode.fileSizeBytes)
+            } else {
+                null
+            }
             val downloadLabel = when (episode.downloadState) {
-                EpisodeDownloadState.DOWNLOADED -> "Downloaded"
                 EpisodeDownloadState.DOWNLOADING -> {
                     val percent = progressByEpisodeId[episode.id]
                     if (percent != null) "Downloading… $percent%" else "Downloading…"
                 }
 
                 EpisodeDownloadState.FAILED -> "Download failed"
-                EpisodeDownloadState.NOT_DOWNLOADED -> null
+                EpisodeDownloadState.DOWNLOADED, EpisodeDownloadState.NOT_DOWNLOADED -> null
             }
+            val playedLabel = if (episode.played) "Played" else null
             val inProgress = !episode.played && episode.playbackPositionMs > 0
-            val playedLabel = when {
-                episode.played -> "Played"
-                inProgress -> "In progress"
-                else -> null
-            }
-            binding.episodeMeta.text = listOfNotNull(date.ifBlank { null }, playedLabel, downloadLabel)
-                .joinToString(" · ")
+            binding.episodeDate.text = date
+            binding.episodeDate.isVisible = date.isNotBlank()
+            val rest = listOfNotNull(sizeLabel, playedLabel, downloadLabel).joinToString(" · ")
+            binding.episodeMeta.text = if (date.isNotBlank() && rest.isNotBlank()) " · $rest" else rest
+            binding.episodeMeta.isVisible = rest.isNotBlank()
 
+            // durationMs is 0 for folder-scanned episodes and for feed items missing an
+            // <itunes:duration> tag -- playbackPositionMs is still saved correctly for those,
+            // so fall back to an indeterminate bar rather than hiding progress entirely.
             if (inProgress && episode.durationMs > 0) {
                 binding.episodeProgress.isVisible = true
+                binding.episodeProgress.isIndeterminate = false
                 binding.episodeProgress.progress =
                     (episode.playbackPositionMs * 100 / episode.durationMs).toInt().coerceIn(0, 100)
+            } else if (inProgress) {
+                binding.episodeProgress.isVisible = true
+                binding.episodeProgress.isIndeterminate = true
             } else {
                 binding.episodeProgress.isVisible = false
             }
@@ -202,15 +231,28 @@ class EpisodeAdapter(
 
             val isDownloading = episode.downloadState == EpisodeDownloadState.DOWNLOADING
             val isDownloaded = episode.downloadState == EpisodeDownloadState.DOWNLOADED
+            val isThisEpisodePlaying = episode.id == currentEpisodeId && isCurrentEpisodePlaying
             binding.downloadButton.setImageResource(
                 when {
+                    isThisEpisodePlaying -> R.drawable.ic_pause
                     isDownloaded -> R.drawable.ic_play_arrow
                     isDownloading -> R.drawable.ic_close
                     else -> R.drawable.ic_download
                 }
             )
+            // ic_play_arrow/ic_pause are plain white glyphs (meant for use on a colored circular
+            // background elsewhere in the app) -- tint them here so they're visible against this
+            // list row's plain background, matching ic_download/ic_close which self-tint.
+            binding.downloadButton.imageTintList = if (isThisEpisodePlaying || isDownloaded) {
+                ColorStateList.valueOf(
+                    MaterialColors.getColor(binding.root, android.R.attr.colorControlNormal)
+                )
+            } else {
+                null
+            }
             binding.downloadButton.contentDescription = binding.root.context.getString(
                 when {
+                    isThisEpisodePlaying -> R.string.podcast_pause
                     isDownloaded -> R.string.podcast_play
                     isDownloading -> R.string.podcast_cancel_download
                     else -> R.string.podcast_download
@@ -218,7 +260,7 @@ class EpisodeAdapter(
             )
             binding.downloadButton.setOnClickListener {
                 when {
-                    isDownloaded -> onPlay(episode)
+                    isThisEpisodePlaying || isDownloaded -> onPlayPauseButton(episode)
                     // A stuck-looking transfer (dead/starved connection) needs a way out -- the
                     // button stays enabled during DOWNLOADING too, as a cancel action.
                     isDownloading -> onDeleteDownload(episode)

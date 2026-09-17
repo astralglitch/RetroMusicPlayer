@@ -85,6 +85,8 @@ import code.name.monkey.retromusic.ACTIVE_QUEUE_ID
 import code.name.monkey.retromusic.GLOBAL_AUTO_DOWNLOAD_VIDEO
 import code.name.monkey.retromusic.GLOBAL_PLAY_PREFERENCE
 import code.name.monkey.retromusic.PLAY_VIDEO_LINKS_IN_APP
+import code.name.monkey.retromusic.PODCAST_SKIP_BACK_SECONDS
+import code.name.monkey.retromusic.PODCAST_SKIP_FORWARD_SECONDS
 import code.name.monkey.retromusic.PREFER_STREAMING
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.RECENTLY_PLAYED_CUTOFF
@@ -881,6 +883,12 @@ object PreferenceUtil {
             PREFER_STREAMING,
             false
         )
+
+    val podcastSkipBackSeconds: Int
+        get() = sharedPreferences.getInt(PODCAST_SKIP_BACK_SECONDS, 10)
+
+    val podcastSkipForwardSeconds: Int
+        get() = sharedPreferences.getInt(PODCAST_SKIP_FORWARD_SECONDS, 30)
 
     var activeQueueId: Long
         get() = sharedPreferences.getLong(ACTIVE_QUEUE_ID, -1L)

@@ -64,6 +64,11 @@ class EpisodeDetailsFragment : AbsMainActivityFragment(R.layout.fragment_episode
     private val viewModel by viewModel<EpisodeDetailsViewModel> {
         parametersOf(arguments.extraEpisodeId)
     }
+    private val resumeSeeker = EpisodeResumeSeeker()
+
+    override fun onPlayingMetaChanged() {
+        resumeSeeker.onPlayingMetaChanged()
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -77,6 +82,7 @@ class EpisodeDetailsFragment : AbsMainActivityFragment(R.layout.fragment_episode
 
         viewModel.episode.observe(viewLifecycleOwner) { episode ->
             if (episode != null) showEpisode(episode)
+            updatePlayLabel()
         }
         viewModel.podcast.observe(viewLifecycleOwner) { podcast ->
             if (podcast != null) showPodcast(podcast)
@@ -85,10 +91,20 @@ class EpisodeDetailsFragment : AbsMainActivityFragment(R.layout.fragment_episode
             binding.episodeProgress.isVisible = progress != null
             if (progress != null) binding.episodeProgress.progress = progress
         }
-        viewModel.isPlayingThisEpisode.observe(viewLifecycleOwner) { isPlaying ->
-            binding.playActionIcon.setImageResource(if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play_arrow)
-            binding.playLabel.setText(if (isPlaying) R.string.podcast_pause else R.string.podcast_play)
-        }
+        viewModel.isPlayingThisEpisode.observe(viewLifecycleOwner) { updatePlayLabel() }
+    }
+
+    private fun updatePlayLabel() {
+        val episode = viewModel.episode.value
+        val isPlaying = viewModel.isPlayingThisEpisode.value == true
+        binding.playActionIcon.setImageResource(if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play_arrow)
+        binding.playLabel.setText(
+            when {
+                isPlaying -> R.string.podcast_pause
+                episode != null && episode.playbackPositionMs > 0 -> R.string.podcast_resume_episode
+                else -> R.string.podcast_play
+            }
+        )
     }
 
     private fun showEpisode(episode: EpisodeEntity) {
@@ -168,6 +184,7 @@ class EpisodeDetailsFragment : AbsMainActivityFragment(R.layout.fragment_episode
             return
         }
         val podcast = viewModel.podcast.value ?: return
+        resumeSeeker.arm(episode)
         MusicPlayerRemote.openQueue(listOf(episode.toSong(podcast)), 0, true)
         viewLifecycleOwner.lifecycleScope.activateVideoIfPreferred(episode, podcast)
     }
