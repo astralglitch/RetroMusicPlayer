@@ -99,7 +99,8 @@ class QueueFragment : AbsMainActivityFragment(R.layout.fragment_episode_list) {
 
     private fun attachDragToReorder() {
         val callback = object : ItemTouchHelper.SimpleCallback(
-            ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN,
+            ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
         ) {
             override fun onMove(
                 recyclerView: RecyclerView,
@@ -114,7 +115,15 @@ class QueueFragment : AbsMainActivityFragment(R.layout.fragment_episode_list) {
                 return true
             }
 
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+            // Swipe in either direction removes the row from this queue -- the resulting
+            // viewModel.episodes update (submitList) handles the row's removal animation, so no
+            // manual notifyItemChanged/undo snap-back is needed here (unlike SwipeActionHelper's
+            // toggle-style actions elsewhere, which do restore the row).
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val position = viewHolder.bindingAdapterPosition
+                if (position < 0 || position >= workingEpisodes.size) return
+                viewModel.removeFromQueue(workingEpisodes[position])
+            }
 
             override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
                 super.clearView(recyclerView, viewHolder)

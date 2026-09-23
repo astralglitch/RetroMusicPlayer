@@ -25,12 +25,14 @@ import androidx.core.view.GravityCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.FragmentEpisodeListBinding
 import code.name.monkey.retromusic.db.EpisodeEntity
 import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
+import code.name.monkey.retromusic.util.SwipeActionHelper
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.koin.core.parameter.parametersOf
 
@@ -64,6 +66,7 @@ abstract class AbsEpisodeListFragment(
         }
         binding.emptyText.setText(emptyTextRes)
         binding.recyclerView.layoutManager = LinearLayoutManager(mainActivity)
+        attachSwipeActions()
 
         viewModel.episodes.observe(viewLifecycleOwner) { updateAdapter() }
         viewModel.podcasts.observe(viewLifecycleOwner) { updateAdapter() }
@@ -92,6 +95,52 @@ abstract class AbsEpisodeListFragment(
         binding.recyclerView.adapter = episodeAdapter
         binding.emptyText.isVisible = episodes.isEmpty()
     }
+
+    /** Reasonable per-tab swipe defaults, per docs/PODCAST_DESIGN.md's "Per-tab swipe actions"
+     * section -- not user-configurable yet, same as that section's stated plan. Left/right icons
+     * and actions vary by [kind]; the episode acted on is read from the adapter's current list at
+     * swipe time (the adapter itself is recreated on every list update, so this fragment -- not
+     * the adapter -- owns the one long-lived ItemTouchHelper). */
+    private fun attachSwipeActions() {
+        fun episodeAt(position: Int) = episodeAdapter?.currentList?.getOrNull(position)
+
+        val (leftIcon, onLeft, rightIcon, onRight) = when (kind) {
+            EpisodeListKind.FAVORITES -> SwipeConfig(
+                R.drawable.ic_check_circle, { episodeAt(it)?.let { e -> viewModel.setPlayed(e, true) } },
+                R.drawable.ic_favorite_border, { episodeAt(it)?.let { e -> viewModel.setFavorited(e, false) } }
+            )
+
+            EpisodeListKind.DOWNLOADS -> SwipeConfig(
+                R.drawable.ic_delete, { episodeAt(it)?.let { e -> viewModel.deleteDownload(e) } },
+                R.drawable.ic_check_circle, { episodeAt(it)?.let { e -> viewModel.setPlayed(e, true) } }
+            )
+
+            EpisodeListKind.HISTORY -> SwipeConfig(
+                R.drawable.ic_check_circle, { episodeAt(it)?.let { e -> viewModel.setPlayed(e, false) } },
+                R.drawable.ic_check_circle, { episodeAt(it)?.let { e -> viewModel.setPlayed(e, true) } }
+            )
+
+            EpisodeListKind.INBOX -> SwipeConfig(
+                R.drawable.ic_check_circle, { episodeAt(it)?.let { e -> viewModel.setPlayed(e, true) } },
+                R.drawable.ic_playlist_add, { episodeAt(it)?.let { e -> viewModel.addToActiveQueue(e) } }
+            )
+
+            EpisodeListKind.ALL -> SwipeConfig(
+                R.drawable.ic_check_circle, { episodeAt(it)?.let { e -> viewModel.setPlayed(e, true) } },
+                R.drawable.ic_favorite_border, { episodeAt(it)?.let { e -> viewModel.setFavorited(e, true) } }
+            )
+        }
+
+        ItemTouchHelper(SwipeActionHelper(leftIcon, rightIcon, onLeft, onRight))
+            .attachToRecyclerView(binding.recyclerView)
+    }
+
+    private data class SwipeConfig(
+        val leftIcon: Int,
+        val onLeft: (Int) -> Unit,
+        val rightIcon: Int,
+        val onRight: (Int) -> Unit
+    )
 
     private fun openEpisode(episode: EpisodeEntity) {
         findNavController().navigate(

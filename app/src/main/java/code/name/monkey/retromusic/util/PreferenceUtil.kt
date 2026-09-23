@@ -87,6 +87,7 @@ import code.name.monkey.retromusic.GLOBAL_PLAY_PREFERENCE
 import code.name.monkey.retromusic.PLAY_VIDEO_LINKS_IN_APP
 import code.name.monkey.retromusic.PODCAST_SKIP_BACK_SECONDS
 import code.name.monkey.retromusic.PODCAST_SKIP_FORWARD_SECONDS
+import code.name.monkey.retromusic.PODCAST_SPEED_STEPS
 import code.name.monkey.retromusic.PREFER_STREAMING
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.RECENTLY_PLAYED_CUTOFF
@@ -149,6 +150,7 @@ import java.io.File
 
 object PreferenceUtil {
     private val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(App.getContext())
+    private val DEFAULT_PODCAST_SPEED_STEPS = floatArrayOf(1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
 
     val defaultCategories = listOf(
         CategoryInfo(CategoryInfo.Category.Home, true),
@@ -889,6 +891,16 @@ object PreferenceUtil {
 
     val podcastSkipForwardSeconds: Int
         get() = sharedPreferences.getInt(PODCAST_SKIP_FORWARD_SECONDS, 30)
+
+    /** Speeds cycled through by the Now Playing speed button, user-editable via a
+     * MultiSelectListPreference (Settings -> Podcasts). Falls back to the original fixed
+     * steps if the set is empty or unparsable (e.g. a corrupt/cleared preference). */
+    val podcastSpeedSteps: FloatArray
+        get() {
+            val stored = sharedPreferences.getStringSet(PODCAST_SPEED_STEPS, null)
+            val parsed = stored?.mapNotNull { it.toFloatOrNull() }?.sorted()
+            return if (parsed.isNullOrEmpty()) DEFAULT_PODCAST_SPEED_STEPS.copyOf() else parsed.toFloatArray()
+        }
 
     var activeQueueId: Long
         get() = sharedPreferences.getLong(ACTIVE_QUEUE_ID, -1L)

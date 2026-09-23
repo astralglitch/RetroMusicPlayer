@@ -46,6 +46,14 @@
             android:title="@string/pref_title_podcast_skip_forward"
             app:showSeekBarValue="true" />
 
+        <MultiSelectListPreference
+            android:entries="@array/podcast_speed_entries"
+            android:entryValues="@array/podcast_speed_entry_values"
+            android:key="podcast_speed_steps"
+            android:layout="@layout/list_item_view"
+            android:summary="@string/pref_summary_podcast_speed_steps"
+            android:title="@string/pref_title_podcast_speed_steps" />
+
     </code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory>
 
 </androidx.preference.PreferenceScreen>

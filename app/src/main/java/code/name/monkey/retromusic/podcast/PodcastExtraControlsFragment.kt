@@ -26,6 +26,7 @@ import androidx.preference.PreferenceManager
 import code.name.monkey.retromusic.PLAYBACK_SPEED
 import code.name.monkey.retromusic.PODCAST_SKIP_BACK_SECONDS
 import code.name.monkey.retromusic.PODCAST_SKIP_FORWARD_SECONDS
+import code.name.monkey.retromusic.PODCAST_SPEED_STEPS
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.FragmentPodcastExtraControlsBinding
 import code.name.monkey.retromusic.extensions.showToast
@@ -42,9 +43,8 @@ import kotlinx.coroutines.launch
  * base transport controls every [code.name.monkey.retromusic.db.MediaItemType] gets. The podcast
  * name itself isn't shown here -- the surrounding player screen's existing artist-name row
  * already carries it (see [code.name.monkey.retromusic.podcast.EpisodeExtensions.toSong], which
- * sets `artistName` to the podcast title). Skip increments and the speed cycle are fixed for now;
- * the project intent is for these to become per-user configurable, same as everything else here
- * (see docs/PODCAST_DESIGN.md).
+ * sets `artistName` to the podcast title). Skip increments and the speed-cycle list are both
+ * user-configurable now (Settings -> Podcasts).
  *
  * This fragment only owns the toggle *button* -- the actual video surface lives in
  * [code.name.monkey.retromusic.fragments.player.PlayerAlbumCoverFragment], replacing the album
@@ -63,7 +63,7 @@ class PodcastExtraControlsFragment : AbsMusicServiceFragment(R.layout.fragment_p
     // Listening for the underlying preference key directly covers both directions.
     private val speedPreferenceListener =
         SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == PLAYBACK_SPEED) updateSpeedLabel()
+            if (key == PLAYBACK_SPEED || key == PODCAST_SPEED_STEPS) updateSpeedLabel()
             if (key == PODCAST_SKIP_BACK_SECONDS || key == PODCAST_SKIP_FORWARD_SECONDS) updateSkipLabels()
         }
 
@@ -175,9 +175,10 @@ class PodcastExtraControlsFragment : AbsMusicServiceFragment(R.layout.fragment_p
     }
 
     private fun cycleSpeed() {
-        val currentIndex = SPEED_STEPS.indexOfFirst { it == PreferenceUtil.playbackSpeed }
-        val nextIndex = if (currentIndex == -1) 0 else (currentIndex + 1) % SPEED_STEPS.size
-        PreferenceUtil.playbackSpeed = SPEED_STEPS[nextIndex]
+        val steps = PreferenceUtil.podcastSpeedSteps
+        val currentIndex = steps.indexOfFirst { it == PreferenceUtil.playbackSpeed }
+        val nextIndex = if (currentIndex == -1) 0 else (currentIndex + 1) % steps.size
+        PreferenceUtil.playbackSpeed = steps[nextIndex]
         updateSpeedLabel()
     }
 
@@ -197,9 +198,5 @@ class PodcastExtraControlsFragment : AbsMusicServiceFragment(R.layout.fragment_p
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-    }
-
-    companion object {
-        private val SPEED_STEPS = floatArrayOf(1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
     }
 }

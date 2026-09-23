@@ -175,6 +175,7 @@ const val ENABLE_SEARCH_PLAYLIST= "enable_search_playlist"
 const val PREFER_STREAMING = "prefer_streaming"
 const val PODCAST_SKIP_BACK_SECONDS = "podcast_skip_back_seconds"
 const val PODCAST_SKIP_FORWARD_SECONDS = "podcast_skip_forward_seconds"
+const val PODCAST_SPEED_STEPS = "podcast_speed_steps"
 /** Which QueueEntity the Podcasts-world Queue tab shows by default -- -1 means "resolve to the
  * default queue" (see QueueViewModel), so this doesn't need seeding at migration time. */
 const val ACTIVE_QUEUE_ID = "active_queue_id"

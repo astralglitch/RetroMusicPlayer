@@ -144,6 +144,8 @@
     <string name="pref_summary_podcast_skip_back">How far the skip-back button rewinds</string>
     <string name="pref_title_podcast_skip_forward">Skip forward</string>
     <string name="pref_summary_podcast_skip_forward">How far the skip-forward button advances</string>
+    <string name="pref_title_podcast_speed_steps">Playback speeds</string>
+    <string name="pref_summary_podcast_speed_steps">Speeds cycled through by the Now Playing speed button</string>
     <string name="pref_title_prefer_streaming">Prefer streaming</string>
     <string name="pref_summary_prefer_streaming">Show Play on an episode\'s page even if it isn\'t downloaded yet. Off by default to encourage downloading for offline listening -- you can still stream from the overflow menu or an episode\'s long-press menu.</string>
     <string name="about_album_label">About %s</string>
