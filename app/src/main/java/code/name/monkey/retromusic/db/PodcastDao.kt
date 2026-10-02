@@ -60,4 +60,16 @@ interface PodcastDao {
     /** Null means "use PreferenceUtil.globalAutoDownloadVideo". */
     @Query("UPDATE PodcastEntity SET auto_download_video = :autoDownload WHERE id = :podcastId")
     suspend fun updateAutoDownloadVideo(podcastId: Long, autoDownload: Boolean?)
+
+    /** Null means "use PreferenceUtil.globalAutoDownloadAudio". */
+    @Query("UPDATE PodcastEntity SET auto_download_audio = :autoDownload WHERE id = :podcastId")
+    suspend fun updateAutoDownloadAudio(podcastId: Long, autoDownload: Boolean?)
+
+    /** Null means "use PreferenceUtil.globalAudioRetentionCount"; -1 means unlimited. */
+    @Query("UPDATE PodcastEntity SET audio_retention_count = :count WHERE id = :podcastId")
+    suspend fun updateAudioRetentionCount(podcastId: Long, count: Int?)
+
+    /** Null means "use PreferenceUtil.globalVideoRetentionCount"; -1 means unlimited. */
+    @Query("UPDATE PodcastEntity SET video_retention_count = :count WHERE id = :podcastId")
+    suspend fun updateVideoRetentionCount(podcastId: Long, count: Int?)
 }

@@ -25,6 +25,8 @@ import androidx.core.net.toUri
 import code.name.monkey.retromusic.db.EpisodeDao
 import code.name.monkey.retromusic.db.EpisodeDownloadState
 import code.name.monkey.retromusic.db.EpisodeEntity
+import code.name.monkey.retromusic.db.PodcastDao
+import code.name.monkey.retromusic.util.PreferenceUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,7 +40,8 @@ import java.io.File
  */
 class EpisodeDownloadManager(
     private val context: Context,
-    private val episodeDao: EpisodeDao
+    private val episodeDao: EpisodeDao,
+    private val podcastDao: PodcastDao
 ) {
     private val downloadManager: DownloadManager =
         context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
@@ -154,7 +157,33 @@ class EpisodeDownloadManager(
                     videoLocalFilePath = localPath
                 )
             )
+            if (succeeded) enforceVideoRetention(episode.podcastId)
         }
+    }
+
+    /** Caps how many downloaded audio episodes of [podcastId] stay on disk, oldest deleted first
+     * -- favorited episodes are exempt, same convention other podcast apps (Overcast, Pocket
+     * Casts) use for auto-cleanup. `-1` (from either the per-podcast override or the global
+     * default) means unlimited. */
+    private suspend fun enforceAudioRetention(podcastId: Long) {
+        val podcast = podcastDao.podcastById(podcastId) ?: return
+        val limit = podcast.audioRetentionCount ?: PreferenceUtil.globalAudioRetentionCount
+        if (limit < 0) return
+        val downloaded = episodeDao.audioDownloadedEpisodesForPodcast(podcastId).filterNot { it.favorited }
+        val excess = downloaded.size - limit
+        if (excess <= 0) return
+        downloaded.take(excess).forEach { deleteDownload(it) }
+    }
+
+    /** Video counterpart to [enforceAudioRetention]. */
+    private suspend fun enforceVideoRetention(podcastId: Long) {
+        val podcast = podcastDao.podcastById(podcastId) ?: return
+        val limit = podcast.videoRetentionCount ?: PreferenceUtil.globalVideoRetentionCount
+        if (limit < 0) return
+        val downloaded = episodeDao.videoDownloadedEpisodesForPodcast(podcastId).filterNot { it.favorited }
+        val excess = downloaded.size - limit
+        if (excess <= 0) return
+        downloaded.take(excess).forEach { deleteVideoDownload(it) }
     }
 
     /** Registers the completion receiver; call from a long-lived scope (e.g. Application.onCreate). */
@@ -245,6 +274,7 @@ class EpisodeDownloadManager(
                     fileSizeBytes = fileSizeBytes ?: episode.fileSizeBytes
                 )
             )
+            if (succeeded) enforceAudioRetention(episode.podcastId)
         }
     }
 }

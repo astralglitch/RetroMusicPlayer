@@ -208,6 +208,10 @@ class PlaybackManager(val context: Context) {
         playback?.setVideoSizeListener(listener)
     }
 
+    fun setVideoTrackEnabled(enabled: Boolean) {
+        playback?.setVideoTrackEnabled(enabled)
+    }
+
     private fun speakerEnabled(): Boolean {
         val headsetTypes = mutableSetOf(
             AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,

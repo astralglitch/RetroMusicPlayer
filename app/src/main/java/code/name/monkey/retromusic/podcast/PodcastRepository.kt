@@ -30,6 +30,7 @@ import code.name.monkey.retromusic.db.PodcastSourceType
 import code.name.monkey.retromusic.db.VideoLinkRuleDao
 import code.name.monkey.retromusic.db.VideoLinkRuleEntity
 import com.google.gson.Gson
+import code.name.monkey.retromusic.util.PreferenceUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -43,7 +44,8 @@ class PodcastRepository(
     private val episodeDao: EpisodeDao,
     private val mediaItemDao: MediaItemDao,
     private val queueRepository: QueueRepository,
-    private val videoLinkRuleDao: VideoLinkRuleDao
+    private val videoLinkRuleDao: VideoLinkRuleDao,
+    private val episodeDownloadManager: EpisodeDownloadManager
 ) {
 
     fun podcasts(): Flow<List<PodcastEntity>> = podcastDao.podcasts()
@@ -284,6 +286,24 @@ class PodcastRepository(
         if (newEpisodeIds.isNotEmpty()) {
             val queueId = targetQueueId ?: queueRepository.defaultQueue().id
             newEpisodeIds.forEach { episodeId -> queueRepository.addToQueue(queueId, episodeId) }
+            autoDownloadNewEpisodes(podcastId, newEpisodeIds)
+        }
+    }
+
+    /** Fires the podcast's effective auto-download policy (per-podcast override, falling back
+     * to the global default) for each genuinely new episode -- audio defaults on (small, fast
+     * files), video defaults off (large, avoid using storage unasked). See
+     * `PreferenceUtil.globalAutoDownloadAudio`/`globalAutoDownloadVideo` and
+     * `PodcastEntity.autoDownloadAudio`/`autoDownloadVideo`. */
+    private suspend fun autoDownloadNewEpisodes(podcastId: Long, newEpisodeIds: List<Long>) {
+        val podcast = podcastDao.podcastById(podcastId) ?: return
+        val downloadAudio = podcast.autoDownloadAudio ?: PreferenceUtil.globalAutoDownloadAudio
+        val downloadVideo = podcast.autoDownloadVideo ?: PreferenceUtil.globalAutoDownloadVideo
+        if (!downloadAudio && !downloadVideo) return
+        newEpisodeIds.forEach { episodeId ->
+            val episode = episodeDao.episodeById(episodeId) ?: return@forEach
+            if (downloadAudio) episodeDownloadManager.enqueue(episode)
+            if (downloadVideo) episodeDownloadManager.enqueueVideo(episode)
         }
     }
 
@@ -309,6 +329,15 @@ class PodcastRepository(
 
     suspend fun setPodcastAutoDownloadVideo(podcastId: Long, autoDownload: Boolean?) =
         withContext(Dispatchers.IO) { podcastDao.updateAutoDownloadVideo(podcastId, autoDownload) }
+
+    suspend fun setPodcastAutoDownloadAudio(podcastId: Long, autoDownload: Boolean?) =
+        withContext(Dispatchers.IO) { podcastDao.updateAutoDownloadAudio(podcastId, autoDownload) }
+
+    suspend fun setPodcastAudioRetentionCount(podcastId: Long, count: Int?) =
+        withContext(Dispatchers.IO) { podcastDao.updateAudioRetentionCount(podcastId, count) }
+
+    suspend fun setPodcastVideoRetentionCount(podcastId: Long, count: Int?) =
+        withContext(Dispatchers.IO) { podcastDao.updateVideoRetentionCount(podcastId, count) }
 
     /** Re-runs this podcast's currently-enabled rules against every episode that has neither a
      * feed-direct video ([EpisodeEntity.videoUrl]) nor an already-assigned/matched

@@ -76,6 +76,13 @@ interface Playback {
      * by default, same reasoning as [setVideoSurface]. */
     fun setVideoSizeListener(listener: ((width: Int, height: Int) -> Unit)?) {}
 
+    /** Enables/disables decoding the video track of the *currently loaded* source, with no
+     * source swap and therefore no rebuffer -- used instead of [swapMediaSource] when an
+     * episode's audio and video URLs are actually the same underlying file (a single AV
+     * enclosure), so toggling video on/off doesn't cause the visible pause/resume blip a full
+     * source swap does. No-op by default, same reasoning as [setVideoSurface]. */
+    fun setVideoTrackEnabled(enabled: Boolean) {}
+
     interface PlaybackCallbacks {
         fun onTrackWentToNext()
 

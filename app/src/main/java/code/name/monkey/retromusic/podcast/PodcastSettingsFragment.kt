@@ -179,6 +179,39 @@ class PodcastSettingsFragment : AbsMainActivityFragment(R.layout.fragment_podcas
         )
         addItem(
             inflater,
+            icon = R.drawable.ic_download,
+            title = getString(R.string.podcast_settings_auto_download_audio),
+            subtitle = autoDownloadAudioSubtitle(podcast.autoDownloadAudio),
+            onClick = { showAutoDownloadAudioDialog(podcast.autoDownloadAudio) }
+        )
+        addItem(
+            inflater,
+            icon = R.drawable.ic_history,
+            title = getString(R.string.podcast_settings_keep_audio_episodes),
+            subtitle = retentionCountSubtitle(podcast.audioRetentionCount),
+            onClick = {
+                showRetentionCountDialog(
+                    titleRes = R.string.podcast_settings_keep_audio_episodes,
+                    current = podcast.audioRetentionCount,
+                    onSet = viewModel::setAudioRetentionCount
+                )
+            }
+        )
+        addItem(
+            inflater,
+            icon = R.drawable.ic_history,
+            title = getString(R.string.podcast_settings_keep_video_episodes),
+            subtitle = retentionCountSubtitle(podcast.videoRetentionCount),
+            onClick = {
+                showRetentionCountDialog(
+                    titleRes = R.string.podcast_settings_keep_video_episodes,
+                    current = podcast.videoRetentionCount,
+                    onSet = viewModel::setVideoRetentionCount
+                )
+            }
+        )
+        addItem(
+            inflater,
             icon = R.drawable.ic_play_circle,
             title = getString(R.string.podcast_settings_video_inapp_playback),
             subtitle = getString(R.string.podcast_settings_video_inapp_playback_subtitle),
@@ -201,6 +234,41 @@ class PodcastSettingsFragment : AbsMainActivityFragment(R.layout.fragment_podcas
             showSwitch = true,
             switchChecked = PreferenceUtil.globalAutoDownloadVideo,
             onSwitchToggle = { checked -> PreferenceUtil.globalAutoDownloadVideo = checked }
+        )
+        addItem(
+            inflater,
+            icon = R.drawable.ic_download,
+            title = getString(R.string.podcast_settings_auto_download_audio_global_title),
+            subtitle = getString(R.string.podcast_settings_global_auto_download_audio_subtitle),
+            showSwitch = true,
+            switchChecked = PreferenceUtil.globalAutoDownloadAudio,
+            onSwitchToggle = { checked -> PreferenceUtil.globalAutoDownloadAudio = checked }
+        )
+        addItem(
+            inflater,
+            icon = R.drawable.ic_history,
+            title = getString(R.string.podcast_settings_keep_audio_episodes_global_title),
+            subtitle = globalRetentionCountSubtitle(PreferenceUtil.globalAudioRetentionCount),
+            onClick = {
+                showGlobalRetentionCountDialog(
+                    titleRes = R.string.podcast_settings_keep_audio_episodes,
+                    current = PreferenceUtil.globalAudioRetentionCount,
+                    onSet = { PreferenceUtil.globalAudioRetentionCount = it; buildSettingsList(podcast) }
+                )
+            }
+        )
+        addItem(
+            inflater,
+            icon = R.drawable.ic_history,
+            title = getString(R.string.podcast_settings_keep_video_episodes_global_title),
+            subtitle = globalRetentionCountSubtitle(PreferenceUtil.globalVideoRetentionCount),
+            onClick = {
+                showGlobalRetentionCountDialog(
+                    titleRes = R.string.podcast_settings_keep_video_episodes,
+                    current = PreferenceUtil.globalVideoRetentionCount,
+                    onSet = { PreferenceUtil.globalVideoRetentionCount = it; buildSettingsList(podcast) }
+                )
+            }
         )
     }
 
@@ -282,6 +350,95 @@ class PodcastSettingsFragment : AbsMainActivityFragment(R.layout.fragment_podcas
                     }
                 )
                 dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun autoDownloadAudioSubtitle(autoDownload: Boolean?) = when (autoDownload) {
+        null -> getString(R.string.podcast_settings_auto_download_video_use_global)
+        true -> getString(R.string.podcast_settings_auto_download_video_on)
+        false -> getString(R.string.podcast_settings_auto_download_video_off)
+    }
+
+    private fun showAutoDownloadAudioDialog(current: Boolean?) {
+        val options = arrayOf(
+            getString(R.string.podcast_settings_auto_download_video_use_global),
+            getString(R.string.podcast_settings_auto_download_video_on),
+            getString(R.string.podcast_settings_auto_download_video_off)
+        )
+        val checkedIndex = when (current) {
+            null -> 0
+            true -> 1
+            false -> 2
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.podcast_settings_auto_download_audio)
+            .setSingleChoiceItems(options, checkedIndex) { dialog, which ->
+                viewModel.setAutoDownloadAudio(
+                    when (which) {
+                        1 -> true
+                        2 -> false
+                        else -> null
+                    }
+                )
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    /** `null` = use global, `-1` = unlimited, `0`+ = that many. Shared subtitle logic for both
+     * the per-podcast override rows and the global rows (which never show "use global" for
+     * themselves, hence the two separate subtitle helpers). */
+    private fun retentionCountSubtitle(count: Int?): String = when {
+        count == null -> getString(R.string.podcast_settings_retention_use_global)
+        count < 0 -> getString(R.string.podcast_settings_retention_unlimited)
+        else -> getString(R.string.podcast_settings_retention_count, count)
+    }
+
+    private fun globalRetentionCountSubtitle(count: Int): String =
+        if (count < 0) getString(R.string.podcast_settings_retention_unlimited)
+        else getString(R.string.podcast_settings_retention_count, count)
+
+    private fun showRetentionCountDialog(titleRes: Int, current: Int?, onSet: (Int?) -> Unit) {
+        val input = EditText(requireContext()).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            current?.let { setText(it.toString()) }
+            setHint(R.string.podcast_settings_retention_hint)
+        }
+        val padding = (16 * resources.displayMetrics.density).toInt()
+        val container = FrameLayout(requireContext()).apply {
+            setPadding(padding, padding / 2, padding, 0)
+            addView(input)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(titleRes)
+            .setView(container)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                onSet(input.text?.toString()?.trim()?.toIntOrNull())
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showGlobalRetentionCountDialog(titleRes: Int, current: Int, onSet: (Int) -> Unit) {
+        val input = EditText(requireContext()).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            setText(current.toString())
+            setHint(R.string.podcast_settings_retention_hint)
+        }
+        val padding = (16 * resources.displayMetrics.density).toInt()
+        val container = FrameLayout(requireContext()).apply {
+            setPadding(padding, padding / 2, padding, 0)
+            addView(input)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(titleRes)
+            .setView(container)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val value = input.text?.toString()?.trim()?.toIntOrNull() ?: current
+                onSet(value)
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()

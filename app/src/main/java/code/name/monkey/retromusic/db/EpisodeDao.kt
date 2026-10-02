@@ -57,6 +57,14 @@ interface EpisodeDao {
     @Query("SELECT * FROM EpisodeEntity WHERE video_download_id = :downloadId LIMIT 1")
     suspend fun episodeForVideoDownloadId(downloadId: Long): EpisodeEntity?
 
+    /** Oldest first -- see `EpisodeDownloadManager.enforceAudioRetention`. */
+    @Query("SELECT * FROM EpisodeEntity WHERE podcast_id = :podcastId AND download_state = 'DOWNLOADED' ORDER BY pub_date ASC")
+    suspend fun audioDownloadedEpisodesForPodcast(podcastId: Long): List<EpisodeEntity>
+
+    /** Oldest first -- see `EpisodeDownloadManager.enforceVideoRetention`. */
+    @Query("SELECT * FROM EpisodeEntity WHERE podcast_id = :podcastId AND video_download_state = 'DOWNLOADED' ORDER BY pub_date ASC")
+    suspend fun videoDownloadedEpisodesForPodcast(podcastId: Long): List<EpisodeEntity>
+
     @Query("SELECT * FROM EpisodeEntity WHERE podcast_id = :podcastId AND guid = :guid LIMIT 1")
     suspend fun episodeForGuid(podcastId: Long, guid: String): EpisodeEntity?
 

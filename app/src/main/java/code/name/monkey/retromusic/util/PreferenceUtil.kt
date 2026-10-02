@@ -82,8 +82,11 @@ import code.name.monkey.retromusic.PLAYLIST_GRID_SIZE_LAND
 import code.name.monkey.retromusic.db.PlayPreference
 import code.name.monkey.retromusic.PLAYLIST_SORT_ORDER
 import code.name.monkey.retromusic.ACTIVE_QUEUE_ID
+import code.name.monkey.retromusic.GLOBAL_AUDIO_RETENTION_COUNT
+import code.name.monkey.retromusic.GLOBAL_AUTO_DOWNLOAD_AUDIO
 import code.name.monkey.retromusic.GLOBAL_AUTO_DOWNLOAD_VIDEO
 import code.name.monkey.retromusic.GLOBAL_PLAY_PREFERENCE
+import code.name.monkey.retromusic.GLOBAL_VIDEO_RETENTION_COUNT
 import code.name.monkey.retromusic.PLAY_VIDEO_LINKS_IN_APP
 import code.name.monkey.retromusic.PODCAST_SKIP_BACK_SECONDS
 import code.name.monkey.retromusic.PODCAST_SKIP_FORWARD_SECONDS
@@ -926,6 +929,27 @@ object PreferenceUtil {
     var globalAutoDownloadVideo: Boolean
         get() = sharedPreferences.getBoolean(GLOBAL_AUTO_DOWNLOAD_VIDEO, false)
         set(value) = sharedPreferences.edit { putBoolean(GLOBAL_AUTO_DOWNLOAD_VIDEO, value) }
+
+    /** App-wide default for whether a new episode's audio auto-downloads on subscribe/refresh --
+     * on by default (audio files are small/fast, this is a podcast-audio-first app); overridable
+     * per podcast via `PodcastEntity.autoDownloadAudio`. */
+    var globalAutoDownloadAudio: Boolean
+        get() = sharedPreferences.getBoolean(GLOBAL_AUTO_DOWNLOAD_AUDIO, true)
+        set(value) = sharedPreferences.edit { putBoolean(GLOBAL_AUTO_DOWNLOAD_AUDIO, value) }
+
+    /** How many downloaded audio episodes to keep per podcast, oldest deleted first (favorited
+     * episodes exempt) -- `-1` means unlimited. See `EpisodeDownloadManager.enforceAudioRetention`;
+     * overridable per podcast via `PodcastEntity.audioRetentionCount`. */
+    var globalAudioRetentionCount: Int
+        get() = sharedPreferences.getInt(GLOBAL_AUDIO_RETENTION_COUNT, 10)
+        set(value) = sharedPreferences.edit { putInt(GLOBAL_AUDIO_RETENTION_COUNT, value) }
+
+    /** Video counterpart to [globalAudioRetentionCount] -- defaults lower since video files are
+     * much larger. See `EpisodeDownloadManager.enforceVideoRetention`;
+     * overridable per podcast via `PodcastEntity.videoRetentionCount`. */
+    var globalVideoRetentionCount: Int
+        get() = sharedPreferences.getInt(GLOBAL_VIDEO_RETENTION_COUNT, 3)
+        set(value) = sharedPreferences.edit { putInt(GLOBAL_VIDEO_RETENTION_COUNT, value) }
 
     var audioFadeDuration
         get() = sharedPreferences

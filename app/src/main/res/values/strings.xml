@@ -68,6 +68,17 @@
     <string name="podcast_settings_global_play_preference_subtitle">Applies to every podcast without its own override</string>
     <string name="podcast_settings_auto_download_video_global_title">Auto-download video (global default)</string>
     <string name="podcast_settings_global_auto_download_video_subtitle">Auto-download video when an episode has one, in addition to audio. Off by default to avoid using extra storage.</string>
+    <string name="podcast_settings_auto_download_audio">Auto-download audio</string>
+    <string name="podcast_settings_auto_download_audio_global_title">Auto-download audio (global default)</string>
+    <string name="podcast_settings_global_auto_download_audio_subtitle">Auto-download new episodes\' audio. On by default -- audio files are small and fast.</string>
+    <string name="podcast_settings_keep_audio_episodes">Keep audio episodes</string>
+    <string name="podcast_settings_keep_audio_episodes_global_title">Keep audio episodes (global default)</string>
+    <string name="podcast_settings_keep_video_episodes">Keep video episodes</string>
+    <string name="podcast_settings_keep_video_episodes_global_title">Keep video episodes (global default)</string>
+    <string name="podcast_settings_retention_use_global">Use global default</string>
+    <string name="podcast_settings_retention_unlimited">Unlimited</string>
+    <string name="podcast_settings_retention_count">Keep %d</string>
+    <string name="podcast_settings_retention_hint">Number to keep, blank for global default, -1 for unlimited</string>
     <string name="podcast_video_link_rules">Video link rules</string>
     <string name="podcast_video_link_rules_empty">No rules yet — add one to auto-detect a video link in this show\'s notes.</string>
     <string name="podcast_video_link_rule_add">Add rule</string>

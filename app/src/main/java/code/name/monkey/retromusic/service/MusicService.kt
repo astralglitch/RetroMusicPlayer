@@ -123,6 +123,7 @@ import code.name.monkey.retromusic.db.EpisodeDao
 import code.name.monkey.retromusic.db.PodcastDao
 import code.name.monkey.retromusic.db.PodcastEntity
 import code.name.monkey.retromusic.podcast.EpisodePositionSaver
+import code.name.monkey.retromusic.podcast.PodcastVideoToggle
 import code.name.monkey.retromusic.podcast.VideoLinkResolver
 import code.name.monkey.retromusic.podcast.episodeIdOrNull
 import code.name.monkey.retromusic.podcast.toSong
@@ -152,6 +153,13 @@ class MusicService : MediaBrowserServiceCompat(),
     private lateinit var playbackManager: PlaybackManager
 
     val playback: Playback? get() = playbackManager.playback
+
+    /** Set on screen-off if video was active, so the screen-on side knows to put it back -- see
+     * [videoScreenStateReceiver]. Deliberately doesn't touch [code.name.monkey.retromusic.podcast.PodcastVideoToggle]
+     * (the UI's actual on/off intent) or any `Surface` reference -- swapping just the media source
+     * and leaving everything else (surface attachment, the fullscreen dialog's own state) alone is
+     * what keeps this safe to bolt on independent of that UI machinery. */
+    private var resumeVideoOnScreenOn = false
 
     private var mPackageValidator: PackageValidator? = null
     private val mMusicProvider = get<AutoMusicProvider>(AutoMusicProvider::class.java)
@@ -249,6 +257,33 @@ class MusicService : MediaBrowserServiceCompat(),
                 val lockIntent = Intent(context, LockScreenActivity::class.java)
                 lockIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                 startActivity(lockIntent)
+            }
+        }
+    }
+
+    /** Drops video decode to audio-only while the screen is off (see AGENTS.md goal #4 -- other
+     * players do the same: VLC keeps audio going and stops decoding video it can't show, YouTube's
+     * free tier just pauses outright), restoring it when the screen comes back on. Reuses
+     * [MusicPlayerRemote.toggleEpisodeVideo] -- the exact same source-swap the on-screen toggle
+     * button already drives -- rather than touching surface attachment or
+     * [code.name.monkey.retromusic.podcast.PodcastVideoToggle] itself, so this can't fight the
+     * inline/fullscreen video UI's own bookkeeping. */
+    private val videoScreenStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                Intent.ACTION_SCREEN_OFF -> {
+                    if (PodcastVideoToggle.isActive.value) {
+                        toggleEpisodeVideo(false)
+                        resumeVideoOnScreenOn = true
+                    }
+                }
+
+                Intent.ACTION_SCREEN_ON -> {
+                    if (resumeVideoOnScreenOn) {
+                        resumeVideoOnScreenOn = false
+                        toggleEpisodeVideo(true)
+                    }
+                }
             }
         }
     }
@@ -361,6 +396,15 @@ class MusicService : MediaBrowserServiceCompat(),
             IntentFilter(Intent.ACTION_SCREEN_ON),
             ContextCompat.RECEIVER_NOT_EXPORTED
         )
+        ContextCompat.registerReceiver(
+            this,
+            videoScreenStateReceiver,
+            IntentFilter().apply {
+                addAction(Intent.ACTION_SCREEN_OFF)
+                addAction(Intent.ACTION_SCREEN_ON)
+            },
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
         sessionToken = mediaSession?.sessionToken
         notificationManager = getSystemService()
         initNotification()
@@ -398,6 +442,7 @@ class MusicService : MediaBrowserServiceCompat(),
         LocalBroadcastManager.getInstance(this).unregisterReceiver(widgetIntentReceiver)
         LocalBroadcastManager.getInstance(this).unregisterReceiver(updateFavoriteReceiver)
         unregisterReceiver(lockScreenReceiver)
+        unregisterReceiver(videoScreenStateReceiver)
         if (headsetReceiverRegistered) {
             unregisterReceiver(headsetReceiver)
             headsetReceiverRegistered = false
@@ -1109,9 +1154,21 @@ class MusicService : MediaBrowserServiceCompat(),
      * whatever `VideoLinkResolver` already has cached for it -- resolution itself happens in the
      * UI layer (see `PodcastExtraControlsFragment`/`EpisodeDetailsFragment`) before this is ever
      * called with `enable = true`, so this stays synchronous. No-op if the current song isn't
-     * video-capable, or a source-link episode hasn't been resolved (yet/anymore). */
+     * video-capable, or a source-link episode hasn't been resolved (yet/anymore).
+     *
+     * Also reused by [videoScreenStateReceiver] to drop/restore video decode around screen lock
+     * without touching the video surface or [code.name.monkey.retromusic.podcast.PodcastVideoToggle]
+     * -- just the media source, same as this always did. */
     fun toggleEpisodeVideo(enable: Boolean) {
         val song = currentSong
+        // A single-enclosure feed (audio and video the same file, e.g. TWiT's video feed) is
+        // already loaded either way -- just flip video-track decoding on/off with no source swap,
+        // so there's no rebuffer/pause-then-resume blip. Only applies to the direct-videoUrl case;
+        // a resolved external link (videoSourceUrl) is never the same file as the audio source.
+        if (song.videoUrl != null && song.videoUrl == song.data) {
+            playbackManager.setVideoTrackEnabled(enable)
+            return
+        }
         val resumePositionMs = songProgressMillis.toLong().coerceAtLeast(0)
         if (enable) {
             val directUri = song.videoUrl?.toUri()
@@ -1342,6 +1399,9 @@ class MusicService : MediaBrowserServiceCompat(),
 
     @Synchronized
     private fun openCurrent(completion: (success: Boolean) -> Unit) {
+        // A new track is loading -- any pending "resume video on unlock" from whatever was
+        // playing before no longer applies.
+        resumeVideoOnScreenOn = false
         val force = if (!trackEndedByCrossfade) {
             true
         } else {

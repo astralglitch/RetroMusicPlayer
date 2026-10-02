@@ -39,11 +39,11 @@ val podcastModule = module {
     }
 
     single {
-        PodcastRepository(androidContext(), get(PODCAST_HTTP_CLIENT), get(), get(), get(), get(), get())
+        PodcastRepository(androidContext(), get(PODCAST_HTTP_CLIENT), get(), get(), get(), get(), get(), get())
     }
 
     single {
-        EpisodeDownloadManager(androidContext(), get())
+        EpisodeDownloadManager(androidContext(), get(), get())
     }
 
     single {

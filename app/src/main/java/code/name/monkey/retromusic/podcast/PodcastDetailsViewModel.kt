@@ -157,6 +157,30 @@ class PodcastDetailsViewModel(
         }
     }
 
+    /** Null means "use PreferenceUtil.globalAutoDownloadAudio". */
+    fun setAutoDownloadAudio(autoDownload: Boolean?) {
+        viewModelScope.launch {
+            repository.setPodcastAutoDownloadAudio(podcastId, autoDownload)
+            _podcast.value = repository.podcastById(podcastId)
+        }
+    }
+
+    /** Null means "use PreferenceUtil.globalAudioRetentionCount"; -1 means unlimited. */
+    fun setAudioRetentionCount(count: Int?) {
+        viewModelScope.launch {
+            repository.setPodcastAudioRetentionCount(podcastId, count)
+            _podcast.value = repository.podcastById(podcastId)
+        }
+    }
+
+    /** Null means "use PreferenceUtil.globalVideoRetentionCount"; -1 means unlimited. */
+    fun setVideoRetentionCount(count: Int?) {
+        viewModelScope.launch {
+            repository.setPodcastVideoRetentionCount(podcastId, count)
+            _podcast.value = repository.podcastById(podcastId)
+        }
+    }
+
     fun unsubscribe(onComplete: () -> Unit) {
         val podcast = _podcast.value ?: return
         viewModelScope.launch {

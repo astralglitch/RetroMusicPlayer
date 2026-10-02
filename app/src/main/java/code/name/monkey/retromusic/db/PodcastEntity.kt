@@ -79,5 +79,19 @@ data class PodcastEntity(
 
     /** Null = use `PreferenceUtil.globalAutoDownloadVideo`. See `EpisodeDownloadManager.enqueueVideo`. */
     @ColumnInfo(name = "auto_download_video")
-    val autoDownloadVideo: Boolean? = null
+    val autoDownloadVideo: Boolean? = null,
+
+    /** Null = use `PreferenceUtil.globalAutoDownloadAudio`. See `PodcastRepository.persistEpisodes`. */
+    @ColumnInfo(name = "auto_download_audio")
+    val autoDownloadAudio: Boolean? = null,
+
+    /** How many downloaded audio episodes of this podcast to keep, oldest deleted first
+     * (favorited episodes exempt) -- see `EpisodeDownloadManager.enforceAudioRetention`. Null =
+     * use `PreferenceUtil.globalAudioRetentionCount`; `-1` = unlimited. */
+    @ColumnInfo(name = "audio_retention_count")
+    val audioRetentionCount: Int? = null,
+
+    /** Video counterpart to [audioRetentionCount] -- see `EpisodeDownloadManager.enforceVideoRetention`. */
+    @ColumnInfo(name = "video_retention_count")
+    val videoRetentionCount: Int? = null
 )

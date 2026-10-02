@@ -272,6 +272,14 @@ class RetroExoPlayer(context: Context) : AudioManagerPlayback(context), Player.L
         videoSizeListener = listener
     }
 
+    override fun setVideoTrackEnabled(enabled: Boolean) {
+        Handler(Looper.getMainLooper()).post {
+            player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, !enabled)
+                .build()
+        }
+    }
+
     override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
         if (videoSize.width > 0 && videoSize.height > 0) {
             videoSizeListener?.invoke(videoSize.width, videoSize.height)
