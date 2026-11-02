@@ -12,7 +12,19 @@
     <string name="podcast_tab_history">History</string>
     <string name="podcast_tab_favorites">Favorites</string>
     <string name="podcast_tab_statistics">Statistics</string>
-    <string name="podcast_tab_coming_soon">Coming soon</string>
+    <string name="podcast_statistics_listening_time">Listening time</string>
+    <string name="podcast_statistics_estimate_note">Estimated from saved progress. Episodes marked as played count in full, and repeat listens count once.</string>
+    <string name="podcast_statistics_played">Episodes played</string>
+    <string name="podcast_statistics_in_progress">In progress</string>
+    <string name="podcast_statistics_top_shows">Most listened</string>
+    <string name="podcast_statistics_empty">Subscribe to a podcast to see your statistics</string>
+    <string name="podcast_statistics_hours_minutes">%1$dh %2$dm</string>
+    <string name="podcast_statistics_minutes">%1$dm</string>
+    <string name="podcast_statistics_show_summary">%1$s · %2$s</string>
+    <plurals name="podcast_statistics_played_episodes">
+        <item quantity="one">%d played</item>
+        <item quantity="other">%d played</item>
+    </plurals>
     <string name="podcast_categories">Podcast tabs</string>
     <string name="pref_summary_podcast_categories">Choose podcast bottom navigation items</string>
     <string name="pref_header_podcast_tabs">Bottom navigation</string>

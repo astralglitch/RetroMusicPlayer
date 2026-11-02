@@ -24,8 +24,7 @@ import kotlinx.coroutines.launch
 
 /** Which full (uncapped) episode list a [EpisodeListViewModel]/[AbsEpisodeListFragment] shows --
  * one shared pair of classes for every simple "list of episodes across all subscriptions"
- * Podcasts-world tab, same idea as [AbsPodcastPlaceholderFragment] before these had real
- * screens. */
+ * Podcasts-world tab. */
 enum class EpisodeListKind { FAVORITES, DOWNLOADS, HISTORY, INBOX, ALL }
 
 class EpisodeListViewModel(

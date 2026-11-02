@@ -19,7 +19,15 @@ import androidx.room.Query
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
-
+/** Per-podcast roll-up backing the Podcasts-world Statistics tab, see [EpisodeDao.episodeStats]. */
+data class PodcastEpisodeStats(
+    val podcastId: Long,
+    val listenedMs: Long,
+    val playedCount: Int,
+    val inProgressCount: Int,
+    val favoriteCount: Int,
+    val downloadedCount: Int
+)
 
 @Dao
 interface EpisodeDao {
@@ -118,4 +126,19 @@ interface EpisodeDao {
 
     @Query("SELECT * FROM EpisodeEntity ORDER BY pub_date DESC")
     fun allEpisodes(): Flow<List<EpisodeEntity>>
+
+    /** A played episode counts as listened in full; an unplayed one up to its saved position. */
+    @Query(
+        """
+        SELECT podcast_id AS podcastId,
+            SUM(CASE WHEN played = 1 THEN MAX(duration_ms, playback_position_ms) ELSE playback_position_ms END) AS listenedMs,
+            SUM(played = 1) AS playedCount,
+            SUM(played = 0 AND playback_position_ms > 0) AS inProgressCount,
+            SUM(favorited = 1) AS favoriteCount,
+            SUM(download_state = 'DOWNLOADED' OR video_download_state = 'DOWNLOADED') AS downloadedCount
+        FROM EpisodeEntity
+        GROUP BY podcast_id
+        """
+    )
+    fun episodeStats(): Flow<List<PodcastEpisodeStats>>
 }

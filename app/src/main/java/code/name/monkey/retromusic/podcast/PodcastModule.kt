@@ -74,6 +74,10 @@ val podcastModule = module {
         QueueViewModel(get())
     }
 
+    viewModel {
+        PodcastStatisticsViewModel(get())
+    }
+
     viewModel { (podcastId: Long) ->
         VideoLinkRulesViewModel(get(), podcastId)
     }

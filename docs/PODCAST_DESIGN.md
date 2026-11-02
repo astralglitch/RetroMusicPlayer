@@ -18,8 +18,8 @@ as decisions change.
   bottom nav on screen.
 - A "Universal" bottom-nav profile (same tabs regardless of world) can come later if
   wanted; not blocking anything.
-- **Status:** undecided/not built. Revisit once Music and Podcasts both have real
-  content to navigate.
+- **Status:** side-nav world switcher and customizable per-world bottom nav are built.
+  The Universal profile is still undecided/not built.
 
 ## Multi-queue
 
@@ -176,9 +176,12 @@ This means video is **no longer auto-downloaded** just because a feed's enclosur
 to be a video file; downloading it is now an explicit action (episode long-press ->
 "Download video"), and `PreferenceUtil.globalAutoDownloadVideo` (off by default, per-podcast
 override via `PodcastEntity.autoDownloadVideo`) exists as the policy switch for a future
-auto-download-on-refresh hook -- **not yet wired to anything**, since no such hook exists
-for audio downloads either (episodes are never auto-downloaded today, only on explicit
-tap); building that is a separate, not-yet-scoped piece of work for both audio and video.
+auto-download-on-refresh hook. That hook now exists for both audio and video
+(`PodcastRepository.autoDownloadNewEpisodes`, on subscribe/refresh): audio defaults on via
+`PreferenceUtil.globalAutoDownloadAudio`, video stays off, and each is overridable per
+podcast. `EpisodeDownloadManager` also caps downloads per podcast after each success, oldest
+deleted first with favorites exempt (`globalAudioRetentionCount`/`globalVideoRetentionCount`,
+-1 for unlimited).
 An external (YouTube-etc.) video link downloads by first resolving it via
 `VideoLinkResolver` to a real stream URL -- only a progressive (non-HLS) result can be
 downloaded this way, since `DownloadManager` can't fetch a segmented stream; an HLS-only
@@ -200,8 +203,10 @@ Noted here for later; no design work done yet.
   feed-direct video and resolved external links (YouTube/SoundCloud/PeerTube/Bandcamp);
   everything else, including Vimeo, falls back to external-open. Minor playback
   stutter on toggle is a known, accepted limitation. Auto-detection rules, the play
-  preference, and separate video downloads (above) are also built; auto-download-on-refresh
-  policy is not wired to anything yet (see above).
+  preference, separate video downloads, and auto-download-on-refresh (above) are also built.
+  While the screen is off, video drops to audio-only and is restored on screen-on; a
+  single-file audio/video enclosure toggles its video track without a source swap, so it
+  doesn't stutter.
 
 ## Per-tab swipe actions
 
@@ -211,8 +216,22 @@ customization. Same idea applies here once there's a real episode-list UI to swi
 (subscriptions, queue, downloads tabs). Ship reasonable defaults first (e.g. swipe to
 mark played/unplayed, swipe to remove from queue), make them configurable later —
 same shape as the bottom-nav customization story above.
-- **Status:** noted, not designed in detail yet. Depends on the nav-and-tabs decision
-  above being settled first, since "per tab" isn't meaningful until tabs exist.
+- **Status:** defaults built for the standalone episode-list tabs
+  (`AbsEpisodeListFragment.attachSwipeActions`); configuring them is not built.
+
+## Statistics
+
+The Podcasts-world Statistics tab (`PodcastStatisticsFragment`) shows estimated listening
+time, library counts, and the most-listened shows. It's computed from each episode's current
+saved state (`EpisodeDao.episodeStats`), with no listening log and no schema change, so:
+- a played episode counts in full, even if it was only marked played by hand;
+- an unplayed episode counts up to its saved position;
+- repeat listens count once, playback speed is ignored, and unsubscribing removes that
+  show's history.
+
+The screen labels the total as an estimate because of this. Date-based stats (this week,
+streaks) would need a real listening log written from the playback path.
+- **Status:** built; the listening log is not.
 
 ## Encourage offline listening from the episode subpage
 
@@ -245,8 +264,8 @@ Nav and multi-queue are deliberately deferred. Immediate focus is the basics:
    cancel a stuck transfer, see real progress). ✅
 5. Persist and resume playback position per episode. ✅
 
-Basic loop and the type-aware Now Playing screen (above) are both done. Next real
-milestones, roughly in order: nav/tabs, then multi-queue, then per-tab swipe actions.
+Basic loop, the type-aware Now Playing screen, nav/tabs, multi-queue, and default per-tab
+swipe actions (above) are all done. The largest idea still open is the context queue (below).
 
 ## Playback tracking: what's real vs. what's still a stopgap
 

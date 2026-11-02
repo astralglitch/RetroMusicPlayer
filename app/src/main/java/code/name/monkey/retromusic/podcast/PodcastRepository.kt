@@ -25,6 +25,7 @@ import code.name.monkey.retromusic.db.MediaItemEntity
 import code.name.monkey.retromusic.db.MediaItemType
 import code.name.monkey.retromusic.db.PodcastDao
 import code.name.monkey.retromusic.db.PodcastEntity
+import code.name.monkey.retromusic.db.PodcastEpisodeStats
 import code.name.monkey.retromusic.db.PlayPreference
 import code.name.monkey.retromusic.db.PodcastSourceType
 import code.name.monkey.retromusic.db.VideoLinkRuleDao
@@ -86,6 +87,8 @@ class PodcastRepository(
     fun allEpisodes(): Flow<List<EpisodeEntity>> = episodeDao.allEpisodes()
 
     fun playedEpisodes(): Flow<List<EpisodeEntity>> = episodeDao.playedEpisodes()
+
+    fun episodeStats(): Flow<List<PodcastEpisodeStats>> = episodeDao.episodeStats()
 
     fun downloadedEpisodes(): Flow<List<EpisodeEntity>> =
         episodeDao.episodesByDownloadState(EpisodeDownloadState.DOWNLOADED)

@@ -40,8 +40,7 @@ import org.koin.core.parameter.parametersOf
  * A plain "every episode matching some filter, across all subscriptions" screen -- one shared
  * class backs the Podcasts-world Favorites/Downloads/History/Inbox/Episodes tabs, which differ
  * only in which [EpisodeListKind] they query (see EpisodeListViewModel) and their title/empty
- * message. Mirrors how AbsPodcastPlaceholderFragment shared one class for these before they had
- * real screens.
+ * message.
  */
 abstract class AbsEpisodeListFragment(
     @StringRes private val titleRes: Int,
