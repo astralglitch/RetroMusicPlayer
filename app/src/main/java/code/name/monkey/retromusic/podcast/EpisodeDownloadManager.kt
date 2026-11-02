@@ -216,8 +216,8 @@ class EpisodeDownloadManager(
         downloadManager.query(query).use { cursor ->
             if (!cursor.moveToFirst()) return null
             val downloadedSoFar =
-                cursor.getLong(cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
-            val totalSize = cursor.getLong(cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
+                cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
+            val totalSize = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
             if (totalSize <= 0) return null
             return ((downloadedSoFar * 100) / totalSize).toInt().coerceIn(0, 100)
         }

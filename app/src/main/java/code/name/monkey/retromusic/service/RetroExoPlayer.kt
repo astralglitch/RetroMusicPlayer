@@ -251,6 +251,7 @@ class RetroExoPlayer(context: Context) : AudioManagerPlayback(context), Player.L
         }
     }
 
+    @OptIn(UnstableApi::class)
     override fun swapMediaSource(uri: Uri, resumePositionMs: Long, isHls: Boolean) {
         Handler(Looper.getMainLooper()).post {
             val wasPlaying = player.isPlaying
