@@ -267,6 +267,26 @@ Nav and multi-queue are deliberately deferred. Immediate focus is the basics:
 Basic loop, the type-aware Now Playing screen, nav/tabs, multi-queue, and default per-tab
 swipe actions (above) are all done. The largest idea still open is the context queue (below).
 
+## Queue modes: New queue / Play next / Play last
+
+Taken from Finamp. A 3-way toggle (`layout_queue_mode_toggle.xml`, driven by
+`helper/QueueModeActions.kt`) sits above the Play / Shuffle buttons on the Album, Artist,
+Playlist and Genre detail screens:
+- **New queue** replaces the queue (the original Play / Shuffle behaviour; the default,
+  and reset every time a screen opens).
+- **Play next** inserts the songs after the current one (`MusicPlayerRemote.playNext`).
+- **Play last** appends them to the end (`MusicPlayerRemote.enqueue`).
+Shuffle in Play next / Play last shuffles only the inserted songs and leaves the player's
+shuffle mode alone. The existing ⋮ menu items are unchanged.
+
+**Later (low priority, noted 2026-11-23):** Finamp's long-press on any single item (song
+row, album/artist/playlist card) opens a bottom-sheet card with the same 3-mode toggle
+plus Play / Shuffle and the other item actions. Ours uses popup menus from the ⋮ button
+(Play next / Add to playing queue are already there per song), which is fine for now.
+Revisit when the long-press menus get reworked: one shared bottom-sheet item menu
+reusing `QueueModeActions`.
+- **Status:** detail-screen toggle built; per-item long-press sheet not built.
+
 ## Playback tracking: what's real vs. what's still a stopgap
 
 Three separate layers currently decide "what plays and where it resumes." Worth

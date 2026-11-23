@@ -50,6 +50,7 @@ import code.name.monkey.retromusic.glide.RetroGlideExtension.albumCoverOptions
 import code.name.monkey.retromusic.glide.RetroGlideExtension.artistImageOptions
 import code.name.monkey.retromusic.glide.RetroGlideExtension.asBitmapPalette
 import code.name.monkey.retromusic.glide.SingleColorTarget
+import code.name.monkey.retromusic.helper.QueueModeActions
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.helper.SortOrder.AlbumSongSortOrder.Companion.SONG_A_Z
 import code.name.monkey.retromusic.helper.SortOrder.AlbumSongSortOrder.Companion.SONG_DURATION
@@ -145,15 +146,12 @@ class AlbumDetailsFragment : AbsMainActivityFragment(R.layout.fragment_album_det
             }
 
         }
-        binding.fragmentAlbumContent.playAction.setOnClickListener {
-            MusicPlayerRemote.openQueue(album.songs, 0, true)
-        }
-        binding.fragmentAlbumContent.shuffleAction.setOnClickListener {
-            MusicPlayerRemote.openAndShuffleQueue(
-                album.songs,
-                true
-            )
-        }
+        QueueModeActions(
+            toggle = binding.fragmentAlbumContent.queueMode,
+            playButton = binding.fragmentAlbumContent.playAction,
+            shuffleButton = binding.fragmentAlbumContent.shuffleAction,
+            songsToPlay = { album.songs },
+        )
 
         binding.fragmentAlbumContent.aboutAlbumText.setOnClickListener {
             if (binding.fragmentAlbumContent.aboutAlbumText.maxLines == 4) {

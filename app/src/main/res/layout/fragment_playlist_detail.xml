@@ -22,6 +22,16 @@
             app:layout_scrollFlags="scroll|enterAlways"
             app:navigationIcon="@drawable/ic_arrow_back"
             app:titleTextAppearance="@style/ToolbarTextAppearanceNormal" />
+
+        <!-- Hidden by default: this layout is shared with DetailListFragment.
+             GenreDetailsFragment shows it. -->
+        <include
+            android:id="@+id/queueActions"
+            layout="@layout/layout_queue_mode_actions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:layout_scrollFlags="scroll|enterAlways" />
     </com.google.android.material.appbar.AppBarLayout>
 
     <code.name.monkey.retromusic.views.insets.InsetsRecyclerView

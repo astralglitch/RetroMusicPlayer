@@ -31,6 +31,7 @@ import code.name.monkey.retromusic.adapter.song.SongAdapter
 import code.name.monkey.retromusic.databinding.FragmentPlaylistDetailBinding
 import code.name.monkey.retromusic.extensions.dipToPix
 import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
+import code.name.monkey.retromusic.helper.QueueModeActions
 import code.name.monkey.retromusic.helper.menu.GenreMenuHelper
 import code.name.monkey.retromusic.model.Genre
 import code.name.monkey.retromusic.model.Song
@@ -61,6 +62,13 @@ class GenreDetailsFragment : AbsMainActivityFragment(R.layout.fragment_playlist_
         binding.toolbar.title = arguments.extraGenre.name
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
         setupRecyclerView()
+        binding.queueActions.root.isVisible = true
+        QueueModeActions(
+            toggle = binding.queueActions.queueMode,
+            playButton = binding.queueActions.playAction,
+            shuffleButton = binding.queueActions.shuffleAction,
+            songsToPlay = { songAdapter.dataSet },
+        )
         detailsViewModel.getSongs().observe(viewLifecycleOwner) {
             songs(it)
         }
