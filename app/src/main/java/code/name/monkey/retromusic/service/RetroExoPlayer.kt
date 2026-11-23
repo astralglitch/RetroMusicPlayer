@@ -83,11 +83,23 @@ class RetroExoPlayer(context: Context) : AudioManagerPlayback(context), Player.L
     }
 
     /**
-     * Set the MediaPlayer to start when this MediaPlayer finishes playback.
+     * Queues [path] right after the current item so ExoPlayer transitions into it without
+     * tearing down the audio pipeline (gapless). Replaces any previously queued next item; null
+     * clears it, so playback ends (STATE_ENDED) after the current item.
      *
      * @param path The path of the file, or the http/rtsp URL of the stream you want to play
      */
-    override fun setNextDataSource(path: Uri?) {}
+    override fun setNextDataSource(path: Uri?) {
+        Handler(Looper.getMainLooper()).post {
+            val queuedAfterCurrent = player.mediaItemCount - (player.currentMediaItemIndex + 1)
+            if (queuedAfterCurrent > 0) {
+                player.removeMediaItems(player.currentMediaItemIndex + 1, player.mediaItemCount)
+            }
+            if (path != null && player.mediaItemCount > 0) {
+                player.addMediaItem(MediaItem.fromUri(path))
+            }
+        }
+    }
 
     /**
      * Starts or resumes playback.
@@ -265,8 +277,7 @@ class RetroExoPlayer(context: Context) : AudioManagerPlayback(context), Player.L
             }
             player.prepare()
             player.seekTo(resumePositionMs)
-            if (wasPlaying) player.play()
-        }
+            if (wasPlaying) player.play()        }
     }
 
     override fun setVideoSizeListener(listener: ((width: Int, height: Int) -> Unit)?) {
