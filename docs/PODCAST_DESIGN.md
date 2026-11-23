@@ -21,7 +21,12 @@ as decisions change.
 - **Status:** side-nav world switcher and customizable per-world bottom nav are built.
   The Universal profile is still undecided/not built.
 
-## Multi-queue
+## Multi-queue (as built; being reshaped into Podcast playlists)
+
+> **Superseded by "Queues, history, Inbox and Podcast playlists (plan)" below.** The tables
+> described here stay; in the plan, these named "queues" become **Podcast playlists** in the
+> UI and the live queue becomes a separate, per-world thing. Kept for the as-built details.
+
 
 The idea: AntennaPod (and most podcast apps) give you exactly one queue. New episodes
 from every subscription land in it together, so a burst of low-priority entertainment
@@ -287,6 +292,97 @@ Revisit when the long-press menus get reworked: one shared bottom-sheet item men
 reusing `QueueModeActions`.
 - **Status:** detail-screen toggle built; per-item long-press sheet not built.
 
+## Queues, history, Inbox and Podcast playlists (plan, agreed 2026-11-23)
+
+Not built yet. Agreed direction after comparing Finamp (open source; read
+`lib/services/queue_service.dart` on its `redesign` branch) with how podcast listening differs
+from music. Review before building; stages at the end.
+
+### Concepts
+- **Queue** = what's playing now and next. **One live queue per world** (Music, Podcasts),
+  each keeping its own position. Playing something in one world never touches the other's.
+- **Queue history** = every time a queue is replaced (New queue), cleared, or its upcoming
+  part is swapped out, the old one is archived with its position. Finamp keeps 60; same cap
+  here. Feeds **Previous queue** (one-tap restore) and **Recent queues** (pick one).
+- **Inbox** (Podcasts) = new episodes nobody has acted on yet, unless that podcast is set to
+  auto-route. Acting on an episode moves it out: add to the queue (next/last), add to a
+  playlist, or dismiss ("Not interested").
+- **Podcast playlists** = durable, user-ordered containers of episodes (what the existing
+  `QueueEntity`/`QueueItemEntity` "multi-queue" becomes). YouTube-style: a built-in
+  **Listen Later** (the existing default queue) plus your own playlists. "Lineup" is the
+  preferred *flavour* name and may replace or sit beside "Playlists" later, once the concept is
+  familiar; start with the familiar name.
+
+### Live queue structure (both worlds, Finamp-style)
+previous items -> current item -> **Next Up** -> rest of queue.
+- Each item records its **source** (album, playlist, artist, genre, podcast, podcast
+  playlist, Next Up, ...) for "Playing from ..." and faithful restore.
+- **Play next** appends to the *end of Next Up*, so several Play-nexts play in the order
+  they were added. (Today `MusicPlayerRemote.playNext` inserts at position + 1 each time,
+  so repeated Play-nexts play in reverse order; this fixes that.)
+- **Play last** appends to the end of the queue.
+
+### The 3 actions everywhere (same toggle as music: New queue / Play next / Play last)
+| From | New queue | Play next | Play last |
+|---|---|---|---|
+| One episode, anywhere in Podcasts | queue = that episode (old queue -> history) | into Next Up | end of queue |
+| A whole podcast playlist | queue = the playlist, in its order (old -> history) | whole playlist into Next Up | append whole playlist |
+
+Episodes are *copied* into the queue; the playlist itself is not changed by playing it.
+
+### Podcast playlists: behaviour
+- **Order**, per playlist: Manual (drag) / Oldest first / Newest first / **Rotate shows**
+  (one episode from show A, then B, then C, then A again; each show's own episodes
+  oldest-first). Rotate shows is just a sort mode, so it can ship before rules.
+- **Played episodes**, per playlist (like YouTube Watch Later's "Remove watched videos"):
+  - manual bulk action **Remove played episodes**, always available;
+  - optional automatic behaviour when an episode finishes: *keep and mark played* (dimmed,
+    default) / *remove from playlist* / *remove and delete the download*; later maybe
+    *move to another playlist*.
+- Never modified by queue actions; only by you (or, later, rules).
+- **Progress is remembered, unlike music playlists.** It isn't stored on the playlist: it's
+  each episode's own `playbackPositionMs` / `played` state, which playback already saves and
+  `MusicService.autoResumeEpisodePositionIfNeeded()` already resumes. So **playing a playlist
+  starts at its first unfinished episode, at that episode's saved position** (played episodes
+  are skipped when queuing, kept or removed per the setting above). This makes a playlist a
+  safe anchor: if the live queue gets messed up or replaced, re-queue the playlist and carry on
+  (queue history is a second safety net). This is also why a simpler live queue is acceptable
+  for podcasts at all.
+
+### Mixing worlds: only on purpose
+Default actions always stay in their own world. Mixing ("listen to this music playlist, then
+end with this podcast episode") is a separate, world-labelled action, e.g. *Add to current
+music session*, which marks that session as **Mixed** (badge in queue / Now Playing). A mixed
+session is an ordinary session (it goes to history when replaced) and never consumes or
+overwrites a podcast playlist (episodes are copied; their position/played state still update
+everywhere as usual). Setting (Settings -> Queues -> *Cross-world adds*): **Ask** (default) /
+Allow / Never. An opt-in "one shared queue for everything" mode is possible later.
+
+### Rules (later)
+Automate the Inbox step: "episodes from X -> Listen Later", "over 2 h -> Long listens",
+"video -> Watch later", "auto-add to end of queue". The existing per-podcast
+`targetQueueId` ("New episodes go to ...") is the first, simplest rule.
+
+### Data / migration notes
+- Podcast playlists reuse `QueueEntity`/`QueueItemEntity` (no data migration needed for the
+  rename; UI strings change). Per-playlist sort mode and played-behaviour need new columns
+  -> real Room migration.
+- Live queue history is new persisted state (per world): queue items + sources + position +
+  created-at, capped at 60 per world.
+- Hot path: `MusicService`/`MusicPlayerRemote`/gapless preloading. Keep history writes off
+  the main thread and the playback callbacks; Next Up and per-world switching must keep
+  `RetroExoPlayer`'s next-track preload correct.
+
+### Build stages
+1. **Next Up + item sources** (both worlds). Fixes Play-next ordering; base for the rest.
+2. **Queue history**: archive on replace, Previous queue action, Recent queues screen.
+3. **Per-world live queues**: each world keeps and restores its own queue and position.
+4. **Podcast playlists**: rename in UI, Listen Later, order modes incl. Rotate shows,
+   played-episode behaviour + Remove played, play / next / last for a whole playlist.
+5. **Inbox triage actions**: add to queue (next/last), add to playlist, Not interested.
+6. **Intentional mixing** + Cross-world adds setting.
+7. **Rules.**
+
 ## Playback tracking: what's real vs. what's still a stopgap
 
 Three separate layers currently decide "what plays and where it resumes." Worth
@@ -308,30 +404,8 @@ untangling before doing much more here, since they overlap in confusing ways:
    seeking there immediately auto-advances, which used to look like "tapping play on a
    finished episode skips to the next one" -- 2026-09-16 bug).
 
-**The "context queue" idea (not built)**: right now, opening any episode list and
-hitting play just dumps that screen's current episode list into (1) as a one-off flat
-queue -- e.g. `PodcastDetailsFragment.playEpisode()` builds `displayedEpisodes.map {
-it.toSong(podcast) }` and calls `openQueue`. That's *closer* to what people expect than
-a single global queue, but it's static: built once at tap-time, from whatever sort/
-filter was active on screen *then*. It doesn't track "I'm still logically browsing this
-podcast's episode list sorted newest-first" as a live, referenceable context distinct
-from queues (1) and (2).
-
-Vision: a third notion, a **context queue** -- an ephemeral, screen-derived Next/
-Previous ordering that:
-- Is created implicitly whenever playback starts from a browsing screen (a podcast's
-  episode list, Favorites, History, a search-result list, etc.), capturing that
-  screen's *current* sort/filter as the ordering, not a snapshot of episode IDs.
-- Stays live: if the user changes that screen's sort (e.g. oldest-first) while still
-  playing from it, Next/Previous should reflect the new order without restarting
-  playback.
-- Is distinct from both (1) (the literal player queue, which the context queue would
-  drive under the hood) and (2) (the user's own named, persisted queues) -- adding an
-  episode to a named queue from a context-queue session is a deliberate, separate
-  action ("save this into my queue"), not something that happens implicitly.
-- Needs a way to tell, at any moment, "what's actually driving Next/Previous right
-  now" -- a named queue, a context queue (and if so, from which screen/sort), or
-  neither (a one-off single-episode play). Not designed yet; probably a small enum/
-  sealed-class on `MusicService` alongside `playingQueue` itself.
-- **Status:** vision only, not designed in detail or built. Today's flat-queue-per-tap
-  behavior is a reasonable stopgap and shouldn't block on this.
+**The "context queue" idea -- dropped (2026-11-23).** The original idea: playing from a
+browsing screen would keep the queue tied to that screen's live sort/filter, so re-sorting
+mid-playback would change Next/Previous. Replaced by the plan below: each queue item records
+its *source* (Finamp-style), and old queues are kept in history, which covers "where did this
+come from / get me back to it" without live re-sorting.
