@@ -32,6 +32,14 @@ interface PodcastDao {
     @Query("SELECT * FROM PodcastEntity ORDER BY title ASC")
     fun podcasts(): Flow<List<PodcastEntity>>
 
+    /** Local podcast search; [pattern] is a pre-escaped LIKE pattern. */
+    @Query(
+        "SELECT * FROM PodcastEntity WHERE title LIKE :pattern ESCAPE '\\' " +
+            "OR description LIKE :pattern ESCAPE '\\' " +
+            "ORDER BY (title LIKE :pattern ESCAPE '\\') DESC, title ASC"
+    )
+    fun searchPodcasts(pattern: String): Flow<List<PodcastEntity>>
+
     @Query("SELECT * FROM PodcastEntity WHERE feed_url = :feedUrl LIMIT 1")
     suspend fun podcastForFeedUrl(feedUrl: String): PodcastEntity?
 

@@ -69,6 +69,13 @@
 
         <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESwitchPreference
             android:defaultValue="true"
+            android:key="show_cast_button"
+            android:layout="@layout/list_item_view_switch"
+            android:summary="@string/pref_summary_show_cast_button"
+            android:title="@string/pref_title_show_cast_button" />
+
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESwitchPreference
+            android:defaultValue="true"
             android:key="enable_search_playlist"
             android:layout="@layout/list_item_view_switch"
             android:summary="@string/pref_summary_enable_search_playlist"

@@ -114,6 +114,7 @@ import code.name.monkey.retromusic.TOGGLE_ADD_CONTROLS
 import code.name.monkey.retromusic.TOGGLE_FULL_SCREEN
 import code.name.monkey.retromusic.TOGGLE_HEADSET
 import code.name.monkey.retromusic.TOGGLE_HOME_BANNER
+import code.name.monkey.retromusic.SHOW_CAST_BUTTON
 import code.name.monkey.retromusic.TOGGLE_SUGGESTIONS
 import code.name.monkey.retromusic.TOGGLE_VOLUME
 import code.name.monkey.retromusic.USER_NAME
@@ -429,6 +430,10 @@ object PreferenceUtil {
         get() = sharedPreferences.getBoolean(
             TOGGLE_ADD_CONTROLS, false
         )
+
+    /** Cast button in the Music world's toolbars (it never shows in Podcasts). */
+    val showCastButton
+        get() = sharedPreferences.getBoolean(SHOW_CAST_BUTTON, true)
 
     val isHomeBanner
         get() = sharedPreferences.getBoolean(

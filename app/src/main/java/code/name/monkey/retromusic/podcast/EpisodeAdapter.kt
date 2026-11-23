@@ -240,16 +240,13 @@ class EpisodeAdapter(
                     else -> R.drawable.ic_download
                 }
             )
-            // ic_play_arrow/ic_pause are plain white glyphs (meant for use on a colored circular
-            // background elsewhere in the app) -- tint them here so they're visible against this
-            // list row's plain background, matching ic_download/ic_close which self-tint.
-            binding.downloadButton.imageTintList = if (isThisEpisodePlaying || isDownloaded) {
-                ColorStateList.valueOf(
-                    MaterialColors.getColor(binding.root, android.R.attr.colorControlNormal)
-                )
-            } else {
-                null
-            }
+            // Always tint explicitly. ic_play_arrow/ic_pause are plain white glyphs, and setting the
+            // tint list back to null for ic_download/ic_close also wiped their own vector tint
+            // (ImageView applies a null tint to the drawable), leaving them white and nearly
+            // invisible on a light row.
+            binding.downloadButton.imageTintList = ColorStateList.valueOf(
+                MaterialColors.getColor(binding.root, android.R.attr.colorControlNormal)
+            )
             binding.downloadButton.contentDescription = binding.root.context.getString(
                 when {
                     isThisEpisodePlaying -> R.string.podcast_pause

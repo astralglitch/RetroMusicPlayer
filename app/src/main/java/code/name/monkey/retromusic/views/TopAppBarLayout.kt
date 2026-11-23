@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.res.Configuration
 import android.util.AttributeSet
 import android.view.LayoutInflater
+import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import code.name.monkey.retromusic.databinding.CollapsingAppbarLayoutBinding
 import code.name.monkey.retromusic.databinding.SimpleAppbarLayoutBinding
@@ -68,8 +69,38 @@ class TopAppBarLayout @JvmOverloads constructor(
         set(value) {
             if (mode == AppBarMode.COLLAPSING) {
                 collapsingAppbarBinding?.collapsingToolbarLayout?.title = value
+            } else if (!worldTitle.isNullOrEmpty()) {
+                simpleAppbarBinding?.toolbar?.subtitle = value
             } else {
                 simpleAppbarBinding?.toolbar?.title = value
+            }
+        }
+
+    /**
+     * The media world this tab belongs to ("Music" / "Podcasts"), shown next to the hamburger
+     * at all times. In collapsing mode it's a label pinned inside the toolbar while [title]
+     * (the tab name) is the big collapsing title; in simple mode the world becomes the toolbar
+     * title and the tab name moves to the subtitle. Null hides it (non top-level screens).
+     */
+    var worldTitle: CharSequence? = null
+        set(value) {
+            field = value
+            if (mode == AppBarMode.COLLAPSING) {
+                collapsingAppbarBinding?.worldTitle?.apply {
+                    text = value
+                    isVisible = !value.isNullOrEmpty()
+                }
+            } else {
+                simpleAppbarBinding?.toolbar?.let { toolbar ->
+                    if (value.isNullOrEmpty()) {
+                        toolbar.subtitle?.let { toolbar.title = it }
+                        toolbar.subtitle = null
+                    } else {
+                        val tabName = toolbar.subtitle ?: toolbar.title
+                        toolbar.title = value
+                        toolbar.subtitle = tabName
+                    }
+                }
             }
         }
 

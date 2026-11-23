@@ -7,6 +7,7 @@
     android:layout_width="match_parent"
     android:layout_height="?attr/collapsingToolbarLayoutLargeSize"
     app:collapsedTitleTextAppearance="@style/TextViewHeadline6"
+    app:collapsedTitleTextColor="@android:color/transparent"
     app:expandedTitleMarginBottom="24dp"
     app:expandedTitleMarginEnd="24dp"
     app:expandedTitleMarginStart="24dp"
@@ -21,6 +22,17 @@
         app:layout_collapseMode="pin"
         app:navigationIcon="@drawable/ic_menu"
         app:navigationContentDescription="@string/action_open_drawer"
-        app:titleTextAppearance="@style/ToolbarTextAppearanceNormal"
-        tools:title="@string/songs" />
+        app:titleTextAppearance="@style/ToolbarTextAppearanceNormal">
+
+        <!-- World name ("Music" / "Podcasts"), pinned next to the hamburger. The collapsing
+             title (the tab name) is hidden once collapsed so the two never overlap. -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/worldTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextViewHeadline6"
+            android:visibility="gone"
+            tools:text="@string/podcasts"
+            tools:visibility="visible" />
+    </com.google.android.material.appbar.MaterialToolbar>
 </com.google.android.material.appbar.CollapsingToolbarLayout>

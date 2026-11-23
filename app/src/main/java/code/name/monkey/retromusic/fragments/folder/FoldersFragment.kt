@@ -368,8 +368,9 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
         menu.add(0, R.id.action_go_to_start_directory, 1, R.string.action_go_to_start_directory)
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
-        menu.add(0, R.id.action_settings, 2, R.string.action_settings)
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+        menu.add(0, R.id.action_search_toolbar, 2, R.string.action_search)
+            .setIcon(R.drawable.ic_search)
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
         menu.removeItem(R.id.action_grid_size)
         menu.removeItem(R.id.action_layout_type)
         menu.removeItem(R.id.action_sort_order)
@@ -401,9 +402,9 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
                 return true
             }
 
-            R.id.action_settings -> {
+            R.id.action_search_toolbar -> {
                 findNavController().navigate(
-                    R.id.settings_fragment,
+                    R.id.action_search,
                     null,
                     navOptions
                 )

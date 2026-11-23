@@ -30,7 +30,7 @@ import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.FragmentLibraryBinding
 import code.name.monkey.retromusic.dialogs.CreatePlaylistDialog
 import code.name.monkey.retromusic.dialogs.ImportPlaylistDialog
-import code.name.monkey.retromusic.extensions.setUpMediaRouteButton
+import code.name.monkey.retromusic.extensions.setUpCastMenuItem
 import code.name.monkey.retromusic.extensions.whichFragment
 import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
 import code.name.monkey.retromusic.model.CategoryInfo
@@ -96,16 +96,11 @@ class LibraryFragment : AbsMainActivityFragment(R.layout.fragment_library) {
             getToolbarBackgroundColor(binding.toolbar)
         )
         //Setting up cast button
-        requireContext().setUpMediaRouteButton(menu)
+        requireContext().setUpCastMenuItem(menu)
     }
 
     override fun onMenuItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.action_settings -> findNavController().navigate(
-                R.id.settings_fragment,
-                null,
-                navOptions
-            )
             R.id.action_import_playlist -> ImportPlaylistDialog().show(
                 childFragmentManager,
                 "ImportPlaylist"

@@ -129,6 +129,12 @@
     </fragment>
 
     <fragment
+        android:id="@+id/podcastSearchFragment"
+        android:name="code.name.monkey.retromusic.podcast.PodcastSearchFragment"
+        android:label="PodcastSearchFragment"
+        tools:layout="@layout/fragment_podcast_search" />
+
+    <fragment
         android:id="@+id/podcasts_home_fragment"
         android:name="code.name.monkey.retromusic.podcast.PodcastHomeFragment"
         android:label="@string/podcast_tab_home"

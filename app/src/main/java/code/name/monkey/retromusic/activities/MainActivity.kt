@@ -17,10 +17,13 @@ package code.name.monkey.retromusic.activities
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.View
 import android.provider.MediaStore
 import androidx.activity.addCallback
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.contains
 import androidx.navigation.ui.setupWithNavController
@@ -38,6 +41,7 @@ import code.name.monkey.retromusic.service.MusicService
 import code.name.monkey.retromusic.util.AppRater
 import code.name.monkey.retromusic.util.PreferenceUtil
 import code.name.monkey.retromusic.util.logE
+import code.name.monkey.retromusic.views.TopAppBarLayout
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.get
@@ -107,6 +111,11 @@ class MainActivity : AbsCastActivity() {
             drawerLayout.closeDrawer(GravityCompat.START)
             true
         }
+        // Settings is pinned at the bottom of the drawer instead of each tab's toolbar.
+        worldDrawer.findViewById<View>(R.id.drawerSettings).setOnClickListener {
+            drawerLayout.closeDrawer(GravityCompat.START)
+            findNavController(R.id.fragment_container).navigate(R.id.settings_fragment)
+        }
         onBackPressedDispatcher.addCallback(this) {
             if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
                 drawerLayout.closeDrawer(GravityCompat.START)
@@ -120,6 +129,7 @@ class MainActivity : AbsCastActivity() {
 
     private fun setupNavigationController() {
         val navController = findNavController(R.id.fragment_container)
+        setupWorldTitles()
         val navInflater = navController.navInflater
         val navGraph = navInflater.inflate(R.navigation.main_graph)
 
@@ -199,6 +209,31 @@ class MainActivity : AbsCastActivity() {
                 }
             }
         }
+    }
+
+    /** Shows the current world's name ("Music" / "Podcasts") next to the hamburger on every
+     * top-level tab, in one place instead of in each tab fragment. Runs after each fragment's
+     * own onViewCreated (so after it has set its tab-name title). Detail screens are left
+     * alone: they aren't in either world's destination set. */
+    private fun setupWorldTitles() {
+        val navHost = supportFragmentManager.findFragmentById(R.id.fragment_container) ?: return
+        navHost.childFragmentManager.registerFragmentLifecycleCallbacks(
+            object : FragmentManager.FragmentLifecycleCallbacks() {
+                override fun onFragmentViewCreated(
+                    fm: FragmentManager, f: Fragment, v: View, savedInstanceState: Bundle?
+                ) {
+                    val appBar = v.findViewById<View>(R.id.appBarLayout) as? TopAppBarLayout ?: return
+                    val destinationId = findNavController(R.id.fragment_container)
+                        .currentDestination?.id ?: return
+                    appBar.worldTitle = when (destinationId) {
+                        in musicWorldDestinationIds -> getString(R.string.nav_world_music)
+                        in podcastWorldDestinationIds -> getString(R.string.podcasts)
+                        else -> null
+                    }
+                }
+            },
+            false
+        )
     }
 
     /** The Podcasts world's own bottom-nav tabs, customizable the same way as the Music tabs

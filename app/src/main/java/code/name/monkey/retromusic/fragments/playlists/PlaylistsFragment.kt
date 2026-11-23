@@ -24,7 +24,7 @@ import code.name.monkey.retromusic.EXTRA_PLAYLIST_ID
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.adapter.playlist.PlaylistAdapter
 import code.name.monkey.retromusic.db.PlaylistWithSongs
-import code.name.monkey.retromusic.extensions.setUpMediaRouteButton
+import code.name.monkey.retromusic.extensions.setUpCastMenuItem
 import code.name.monkey.retromusic.fragments.ReloadType
 import code.name.monkey.retromusic.fragments.base.AbsRecyclerViewCustomGridSizeFragment
 import code.name.monkey.retromusic.helper.SortOrder.PlaylistSortOrder
@@ -80,11 +80,10 @@ class PlaylistsFragment :
         menu.removeItem(R.id.action_layout_type)
         menu.add(0, R.id.action_add_to_playlist, 0, R.string.new_playlist_title)
         menu.add(0, R.id.action_import_playlist, 0, R.string.import_playlist)
-        menu.findItem(R.id.action_settings).setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
         setUpSortOrderMenu(menu.findItem(R.id.action_sort_order).subMenu!!)
         MenuCompat.setGroupDividerEnabled(menu, true)
         //Setting up cast button
-        requireContext().setUpMediaRouteButton(menu)
+        requireContext().setUpCastMenuItem(menu)
     }
 
     override fun onMenuItemSelected(item: MenuItem): Boolean {
