@@ -808,7 +808,10 @@ class MusicService : MediaBrowserServiceCompat(),
                         quit()
                     }
 
-                    ACTION_PENDING_QUIT -> pendingQuit = true
+                    ACTION_PENDING_QUIT -> {
+                        pendingQuit = true
+                        prepareNext() // drop any gapless-preloaded next track
+                    }
                     TOGGLE_FAVORITE -> toggleFavorite()
                 }
             }
@@ -951,7 +954,16 @@ class MusicService : MediaBrowserServiceCompat(),
     fun prepareNextImpl() {
         try {
             val nextPosition = getNextPosition(false)
-            playbackManager.setNextDataSource(getSongAt(nextPosition).uri)
+            // Last track with repeat off: getNextPosition() points back at the current song, so
+            // preloading it would make the player replay it instead of ending the queue. Episodes
+            // are never preloaded: they need position sync and the audio<->video source swap.
+            val nothingToPreload = pendingQuit ||
+                (repeatMode == REPEAT_MODE_NONE && isLastTrack) ||
+                currentSong.episodeIdOrNull() != null ||
+                getSongAt(nextPosition).episodeIdOrNull() != null
+            playbackManager.setNextDataSource(
+                if (nothingToPreload) null else getSongAt(nextPosition).uri
+            )
             this.nextPosition = nextPosition
         } catch (ignored: Exception) {
         }
