@@ -32,6 +32,7 @@ import code.name.monkey.retromusic.glide.RetroGlideExtension
 import code.name.monkey.retromusic.glide.RetroGlideExtension.artistImageOptions
 import code.name.monkey.retromusic.glide.RetroGlideExtension.asBitmapPalette
 import code.name.monkey.retromusic.glide.SingleColorTarget
+import code.name.monkey.retromusic.helper.QueueModeActions
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.helper.SortOrder
 import code.name.monkey.retromusic.interfaces.IAlbumClickListener
@@ -94,12 +95,13 @@ abstract class AbsArtistDetailsFragment : AbsMainActivityFragment(R.layout.fragm
         }
         setupRecyclerView()
 
-        binding.fragmentArtistContent.playAction.apply {
-            setOnClickListener { MusicPlayerRemote.openQueue(artist.sortedSongs, 0, true) }
-        }
-        binding.fragmentArtistContent.shuffleAction.apply {
-            setOnClickListener { MusicPlayerRemote.openAndShuffleQueue(artist.songs, true) }
-        }
+        QueueModeActions(
+            toggle = binding.fragmentArtistContent.queueMode,
+            playButton = binding.fragmentArtistContent.playAction,
+            shuffleButton = binding.fragmentArtistContent.shuffleAction,
+            songsToPlay = { artist.sortedSongs },
+            songsToShuffle = { artist.songs },
+        )
 
         binding.fragmentArtistContent.biographyText.setOnClickListener {
             if (binding.fragmentArtistContent.biographyText.maxLines == 4) {

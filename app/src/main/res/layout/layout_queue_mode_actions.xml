@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Queue-mode toggle plus Play / Shuffle buttons, for detail screens that
+     have no header of their own (e.g. genre details). Styled to match
+     fragment_album_content.xml. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="16dp"
+    android:paddingBottom="8dp">
+
+    <include
+        android:id="@+id/queueMode"
+        layout="@layout/layout_queue_mode_toggle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/playAction"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:paddingVertical="10dp"
+            android:text="@string/action_play_all"
+            android:textAppearance="@style/TextViewButton"
+            android:textColor="?android:attr/textColorPrimary"
+            app:icon="@drawable/ic_play_arrow" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/shuffleAction"
+            style="@style/Widget.Material3.Button.Icon"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="4dp"
+            android:layout_weight="1"
+            android:paddingVertical="10dp"
+            android:text="@string/shuffle"
+            android:textAppearance="@style/TextViewButton"
+            app:icon="@drawable/ic_shuffle" />
+    </LinearLayout>
+</LinearLayout>

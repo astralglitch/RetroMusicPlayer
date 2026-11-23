@@ -26,7 +26,7 @@ import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
 import code.name.monkey.retromusic.fragments.search.clearText
 import code.name.monkey.retromusic.glide.RetroGlideExtension.playlistOptions
 import code.name.monkey.retromusic.glide.playlistPreview.PlaylistPreview
-import code.name.monkey.retromusic.helper.MusicPlayerRemote
+import code.name.monkey.retromusic.helper.QueueModeActions
 import code.name.monkey.retromusic.helper.menu.PlaylistMenuHelper
 import code.name.monkey.retromusic.model.Song
 import code.name.monkey.retromusic.util.MusicUtil
@@ -109,18 +109,14 @@ class PlaylistDetailsFragment : AbsMainActivityFragment(R.layout.fragment_playli
     }
 
     private fun setupButtons() {
-        binding.playButton.apply {
-            setOnClickListener {
-                MusicPlayerRemote.openQueue(playlistSongAdapter.dataSet, 0, true)
-            }
-            accentColor()
-        }
-        binding.shuffleButton.apply {
-            setOnClickListener {
-                MusicPlayerRemote.openAndShuffleQueue(playlistSongAdapter.dataSet, true)
-            }
-            elevatedAccentColor()
-        }
+        binding.playButton.accentColor()
+        binding.shuffleButton.elevatedAccentColor()
+        QueueModeActions(
+            toggle = binding.queueMode,
+            playButton = binding.playButton,
+            shuffleButton = binding.shuffleButton,
+            songsToPlay = { playlistSongAdapter.dataSet },
+        )
     }
 
     private fun setUpSearch() {

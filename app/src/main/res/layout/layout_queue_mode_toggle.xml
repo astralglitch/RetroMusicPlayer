@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Picks what the Play / Shuffle buttons next to it do: start a new queue,
+     insert after the current song, or append to the end of the queue.
+     Driven by code.name.monkey.retromusic.helper.QueueModeActions. -->
+<com.google.android.material.button.MaterialButtonToggleGroup xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:contentDescription="@string/queue_mode"
+    app:checkedButton="@+id/queueModeNew"
+    app:selectionRequired="true"
+    app:singleSelection="true">
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/queueModeNew"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:maxLines="1"
+        android:text="@string/queue_mode_new" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/queueModeNext"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:maxLines="1"
+        android:text="@string/queue_mode_next" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/queueModeLast"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:maxLines="1"
+        android:text="@string/queue_mode_last" />
+
+</com.google.android.material.button.MaterialButtonToggleGroup>
