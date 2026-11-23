@@ -204,6 +204,11 @@
     <string name="action_play_last">Play last</string>
     <string name="action_shuffle_last">Shuffle last</string>
     <string name="queue_mode">Queue mode</string>
+    <string name="pref_title_show_cast_button">Show cast button</string>
+    <string name="podcast_search_hint">Search podcasts and episodes</string>
+    <string name="podcast_search_prompt">Search your subscriptions and their episodes</string>
+    <string name="podcast_search_podcasts">Podcasts</string>
+    <string name="pref_summary_show_cast_button">Show the cast button in the Music toolbar</string>
     <string name="queue_mode_new">New queue</string>
     <string name="queue_mode_next">Play next</string>
     <string name="queue_mode_last">Play last</string>

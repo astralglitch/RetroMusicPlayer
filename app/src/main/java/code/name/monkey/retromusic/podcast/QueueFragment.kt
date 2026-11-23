@@ -175,6 +175,7 @@ class QueueFragment : AbsMainActivityFragment(R.layout.fragment_episode_list) {
     }
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+        menuInflater.inflatePodcastWorldActions(menu)
         menuInflater.inflate(R.menu.menu_queue, menu)
     }
 
@@ -184,6 +185,7 @@ class QueueFragment : AbsMainActivityFragment(R.layout.fragment_episode_list) {
     }
 
     override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+        if (onPodcastWorldActionSelected(menuItem)) return true
         when (menuItem.itemId) {
             R.id.action_switch_queue -> showSwitchQueueDialog()
             R.id.action_new_queue -> showNewQueueDialog()

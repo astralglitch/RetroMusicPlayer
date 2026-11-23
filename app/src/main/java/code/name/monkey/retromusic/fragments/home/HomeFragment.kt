@@ -16,10 +16,8 @@ package code.name.monkey.retromusic.fragments.home
 
 import android.os.Bundle
 import android.view.*
-import android.view.MenuItem.SHOW_AS_ACTION_IF_ROOM
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.os.bundleOf
-import androidx.core.text.parseAsHtml
 import androidx.core.view.GravityCompat
 import androidx.core.view.doOnLayout
 import androidx.core.view.doOnPreDraw
@@ -39,7 +37,7 @@ import code.name.monkey.retromusic.dialogs.ImportPlaylistDialog
 import code.name.monkey.retromusic.extensions.accentColor
 import code.name.monkey.retromusic.extensions.dip
 import code.name.monkey.retromusic.extensions.elevatedAccentColor
-import code.name.monkey.retromusic.extensions.setUpMediaRouteButton
+import code.name.monkey.retromusic.extensions.setUpCastMenuItem
 import code.name.monkey.retromusic.fragments.ReloadType
 import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
 import code.name.monkey.retromusic.glide.RetroGlideExtension
@@ -165,9 +163,9 @@ class HomeFragment :
         binding.toolbar.setNavigationOnClickListener {
             mainActivity.drawerLayout.openDrawer(GravityCompat.START)
         }
-        val hexColor = String.format("#%06X", 0xFFFFFF and accentColor())
-        val appName = "Retro <font color=$hexColor>Music</font>".parseAsHtml()
-        binding.appBarLayout.title = appName
+        // The world name ("Music") sits next to the hamburger (see MainActivity.setupWorldTitles);
+        // the big title is the tab name, same as every other tab.
+        binding.appBarLayout.title = getString(R.string.for_you)
     }
 
     private fun loadProfile() {
@@ -203,7 +201,6 @@ class HomeFragment :
         menu.removeItem(R.id.action_grid_size)
         menu.removeItem(R.id.action_layout_type)
         menu.removeItem(R.id.action_sort_order)
-        menu.findItem(R.id.action_settings).setShowAsAction(SHOW_AS_ACTION_IF_ROOM)
         ToolbarContentTintHelper.handleOnCreateOptionsMenu(
             requireContext(),
             binding.toolbar,
@@ -211,7 +208,7 @@ class HomeFragment :
             ATHToolbarActivity.getToolbarBackgroundColor(binding.toolbar)
         )
         //Setting up cast button
-        requireContext().setUpMediaRouteButton(menu)
+        requireContext().setUpCastMenuItem(menu)
     }
 
     override fun scrollToTop() {
@@ -289,12 +286,6 @@ class HomeFragment :
         when (item.itemId) {
             R.id.action_search_toolbar -> findNavController().navigate(
                 R.id.action_search,
-                null,
-                navOptions
-            )
-
-            R.id.action_settings -> findNavController().navigate(
-                R.id.settings_fragment,
                 null,
                 navOptions
             )

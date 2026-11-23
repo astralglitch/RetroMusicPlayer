@@ -166,9 +166,11 @@ class PodcastHomeFragment : AbsMainActivityFragment(R.layout.fragment_podcast_ho
         resumeSeeker.onPlayingMetaChanged()
     }
 
-    override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {}
+    override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+        menuInflater.inflatePodcastWorldActions(menu)
+    }
 
-    override fun onMenuItemSelected(menuItem: MenuItem) = false
+    override fun onMenuItemSelected(menuItem: MenuItem) = onPodcastWorldActionSelected(menuItem)
 
     override fun onDestroyView() {
         super.onDestroyView()

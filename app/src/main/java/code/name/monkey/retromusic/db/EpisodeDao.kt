@@ -124,6 +124,15 @@ interface EpisodeDao {
     @Query("SELECT * FROM EpisodeEntity WHERE playback_position_ms = 0 AND played = 0 ORDER BY pub_date DESC")
     fun allNewEpisodes(): Flow<List<EpisodeEntity>>
 
+    /** Local podcast search. [pattern] is a pre-escaped LIKE pattern (see
+     * PodcastRepository.likePattern); title matches sort above description-only matches. */
+    @Query(
+        "SELECT * FROM EpisodeEntity WHERE title LIKE :pattern ESCAPE '\\' " +
+            "OR description LIKE :pattern ESCAPE '\\' " +
+            "ORDER BY (title LIKE :pattern ESCAPE '\\') DESC, pub_date DESC LIMIT 200"
+    )
+    fun searchEpisodes(pattern: String): Flow<List<EpisodeEntity>>
+
     @Query("SELECT * FROM EpisodeEntity ORDER BY pub_date DESC")
     fun allEpisodes(): Flow<List<EpisodeEntity>>
 

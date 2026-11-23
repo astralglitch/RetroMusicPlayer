@@ -179,7 +179,7 @@ class PodcastsFragment :
     override fun onCreateMenu(menu: Menu, inflater: android.view.MenuInflater) {
         super.onCreateMenu(menu, inflater)
         menu.findItem(R.id.action_sort_order)?.isVisible = false
-        menu.findItem(R.id.action_cast)?.isVisible = false
+        menu.removeItem(R.id.action_cast) // Cast is Music-world only.
         val gridSizeItem = menu.findItem(R.id.action_grid_size)
         if (RetroUtil.isLandscape) {
             gridSizeItem.setTitle(R.string.action_grid_size_land)
@@ -225,6 +225,8 @@ class PodcastsFragment :
     }
 
     override fun onMenuItemSelected(item: MenuItem): Boolean {
+        // The shared menu_main search would open music search; route to podcast search instead.
+        if (onPodcastWorldActionSelected(item)) return true
         if (handleGridSizeMenuItem(item)) return true
         if (handleLayoutResType(item)) return true
         return super.onMenuItemSelected(item)

@@ -85,20 +85,16 @@
         app:showAsAction="never">
         <menu></menu>
     </item>
-    <item
-        android:id="@+id/action_search_toolbar"
-        android:icon="@drawable/ic_search"
-        android:title="@string/action_search"
-        app:showAsAction="never" />
-    <item
-        android:orderInCategory="10"
-        android:id="@+id/action_settings"
-        android:icon="@drawable/ic_settings"
-        android:title="@string/action_settings"
-        app:showAsAction="never" />
+    <!-- Cast (Music world only, hideable in settings) then search, always as icons on the
+         right; the overflow only holds per-tab view options. Settings lives in the drawer. -->
     <item
         android:id="@+id/action_cast"
         android:title="@string/action_cast"
         app:actionProviderClass="androidx.mediarouter.app.MediaRouteActionProvider"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/action_search_toolbar"
+        android:icon="@drawable/ic_search"
+        android:title="@string/action_search"
         app:showAsAction="always" />
 </menu>

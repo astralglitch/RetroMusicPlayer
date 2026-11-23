@@ -68,6 +68,14 @@
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:fitsSystemWindows="true"
-        app:menu="@menu/menu_drawer_worlds" />
+        app:menu="@menu/menu_drawer_worlds">
+
+        <include
+            android:id="@+id/drawerFooter"
+            layout="@layout/drawer_footer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom" />
+    </com.google.android.material.navigation.NavigationView>
 
 </androidx.drawerlayout.widget.DrawerLayout>

@@ -124,7 +124,7 @@ abstract class AbsEpisodeListFragment(
                 R.drawable.ic_playlist_add, { episodeAt(it)?.let { e -> viewModel.addToActiveQueue(e) } }
             )
 
-            EpisodeListKind.ALL -> SwipeConfig(
+            EpisodeListKind.ALL, EpisodeListKind.SEARCH -> SwipeConfig(
                 R.drawable.ic_check_circle, { episodeAt(it)?.let { e -> viewModel.setPlayed(e, true) } },
                 R.drawable.ic_favorite_border, { episodeAt(it)?.let { e -> viewModel.setFavorited(e, true) } }
             )
@@ -178,9 +178,11 @@ abstract class AbsEpisodeListFragment(
         episodeAdapter?.setPlaybackState(MusicPlayerRemote.currentSong.episodeIdOrNull(), MusicPlayerRemote.isPlaying)
     }
 
-    override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {}
+    override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+        menuInflater.inflatePodcastWorldActions(menu)
+    }
 
-    override fun onMenuItemSelected(menuItem: MenuItem) = false
+    override fun onMenuItemSelected(menuItem: MenuItem) = onPodcastWorldActionSelected(menuItem)
 
     override fun onDestroyView() {
         super.onDestroyView()

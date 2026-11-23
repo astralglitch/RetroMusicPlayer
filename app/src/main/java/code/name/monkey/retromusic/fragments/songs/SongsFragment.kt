@@ -21,7 +21,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.adapter.song.SongAdapter
-import code.name.monkey.retromusic.extensions.setUpMediaRouteButton
+import code.name.monkey.retromusic.extensions.setUpCastMenuItem
 import code.name.monkey.retromusic.fragments.GridStyle
 import code.name.monkey.retromusic.fragments.ReloadType
 import code.name.monkey.retromusic.fragments.base.AbsRecyclerViewCustomGridSizeFragment
@@ -145,7 +145,7 @@ class SongsFragment : AbsRecyclerViewCustomGridSizeFragment<SongAdapter, GridLay
         setupLayoutMenu(layoutItem.subMenu!!)
         setUpSortOrderMenu(menu.findItem(R.id.action_sort_order).subMenu!!)
         //Setting up cast button
-        requireContext().setUpMediaRouteButton(menu)
+        requireContext().setUpCastMenuItem(menu)
     }
 
     private fun setUpSortOrderMenu(sortOrderMenu: SubMenu) {

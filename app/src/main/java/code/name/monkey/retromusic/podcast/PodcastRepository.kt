@@ -86,6 +86,20 @@ class PodcastRepository(
 
     fun allEpisodes(): Flow<List<EpisodeEntity>> = episodeDao.allEpisodes()
 
+    fun searchPodcasts(query: String): Flow<List<PodcastEntity>> =
+        podcastDao.searchPodcasts(likePattern(query))
+
+    fun searchEpisodes(query: String): Flow<List<EpisodeEntity>> =
+        episodeDao.searchEpisodes(likePattern(query))
+
+    /** Substring LIKE pattern with the user's own `%`, `_` and `\` escaped (the DAO queries
+     * declare `ESCAPE '\'`), so typing them searches for them literally. */
+    private fun likePattern(query: String): String =
+        "%" + query.trim()
+            .replace("\\", "\\\\")
+            .replace("%", "\\%")
+            .replace("_", "\\_") + "%"
+
     fun playedEpisodes(): Flow<List<EpisodeEntity>> = episodeDao.playedEpisodes()
 
     fun episodeStats(): Flow<List<PodcastEpisodeStats>> = episodeDao.episodeStats()

@@ -20,13 +20,28 @@ import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import code.name.monkey.retromusic.db.EpisodeEntity
 import code.name.monkey.retromusic.db.PodcastEntity
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /** Which full (uncapped) episode list a [EpisodeListViewModel]/[AbsEpisodeListFragment] shows --
  * one shared pair of classes for every simple "list of episodes across all subscriptions"
  * Podcasts-world tab. */
-enum class EpisodeListKind { FAVORITES, DOWNLOADS, HISTORY, INBOX, ALL }
+enum class EpisodeListKind {
+    FAVORITES, DOWNLOADS, HISTORY, INBOX, ALL,
 
+    /** PodcastSearchFragment: episodes (and, via [EpisodeListViewModel.podcastResults],
+     * podcasts) matching [EpisodeListViewModel.setSearchQuery]'s text. */
+    SEARCH
+}
+
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class EpisodeListViewModel(
     private val repository: PodcastRepository,
     private val downloadManager: EpisodeDownloadManager,
@@ -34,12 +49,36 @@ class EpisodeListViewModel(
     kind: EpisodeListKind
 ) : ViewModel() {
 
+    private val searchQuery = MutableStateFlow("")
+
+    /** Trimmed, debounced query; an empty query yields no results rather than everything. */
+    private val activeQuery = searchQuery
+        .map { it.trim() }
+        .debounce(SEARCH_DEBOUNCE_MS)
+        .distinctUntilChanged()
+
+    fun setSearchQuery(query: String) {
+        searchQuery.value = query
+    }
+
     val episodes: LiveData<List<EpisodeEntity>> = when (kind) {
         EpisodeListKind.FAVORITES -> repository.allFavoritedEpisodes()
         EpisodeListKind.DOWNLOADS -> repository.downloadedEpisodes()
         EpisodeListKind.HISTORY -> repository.playedEpisodes()
         EpisodeListKind.INBOX -> repository.allNewEpisodes()
         EpisodeListKind.ALL -> repository.allEpisodes()
+        EpisodeListKind.SEARCH -> activeQuery.flatMapLatest { query ->
+            if (query.isEmpty()) flowOf(emptyList()) else repository.searchEpisodes(query)
+        }
+    }.asLiveData()
+
+    /** Subscriptions matching the search query; always empty for non-[EpisodeListKind.SEARCH]. */
+    val podcastResults: LiveData<List<PodcastEntity>> = if (kind == EpisodeListKind.SEARCH) {
+        activeQuery.flatMapLatest { query ->
+            if (query.isEmpty()) flowOf(emptyList()) else repository.searchPodcasts(query)
+        }
+    } else {
+        flowOf(emptyList())
     }.asLiveData()
 
     val podcasts: LiveData<List<PodcastEntity>> = repository.podcasts().asLiveData()
@@ -64,3 +103,5 @@ class EpisodeListViewModel(
         viewModelScope.launch { queueRepository.addToActiveQueue(episode.id) }
     }
 }
+
+private const val SEARCH_DEBOUNCE_MS = 250L
